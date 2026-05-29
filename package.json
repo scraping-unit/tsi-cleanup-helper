@@ -1,0 +1,29 @@
+{
+	"type": "module",
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"lint": "eslint .",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"test": "vitest run",
+		"dev:server": "npx kill-port 3000 && tsx watch server/server.ts",
+		"dev:ui": "pnpm --filter ui run dev",
+		"dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:ui\""
+	},
+	"dependencies": {
+		"@hono/node-server": "^1",
+		"hono": "^4",
+		"impit": "^0.14.0"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.60.0",
+		"@vitest/coverage-v8": "^4.1.7",
+		"concurrently": "^9",
+		"eslint": "^10.4.0",
+		"prettier": "^3.8.3",
+		"tsx": "^4",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.60.0",
+		"vitest": "^4.1.7"
+	}
+}
