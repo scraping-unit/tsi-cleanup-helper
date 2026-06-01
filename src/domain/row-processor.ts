@@ -7,6 +7,7 @@ import type {
 } from "./types.js";
 import { recommendCleanupStatus } from "./recommendation-engine.js";
 import { checkDeliverooWithFallback } from "./deliveroo-fallback.js";
+import { checkJustEatWithFallback } from "./justeat-fallback.js";
 import { detectMenuPlatformFromUrl } from "./platform-detection.js";
 
 export type UrlCheckerFn = (url: string) => Promise<UrlCheckEvidence>;
@@ -21,7 +22,8 @@ export async function processFailedMenuRecord(
 		urlEvidence.detectedPlatform ?? detectMenuPlatformFromUrl(record.menuUrl);
 	const gatePlatform = platform.toLowerCase();
 	const willFire =
-		urlEvidence.result === "not_verifiable" && gatePlatform === "deliveroo";
+		urlEvidence.result === "not_verifiable" &&
+		(gatePlatform === "deliveroo" || gatePlatform === "justeat");
 
 	console.log(
 		`[row-processor] id=${record.menuId} url_result=${urlEvidence.result} ` +
@@ -30,13 +32,18 @@ export async function processFailedMenuRecord(
 
 	let deliverooVerified: DeliverooPageState | undefined;
 	if (willFire) {
-		const fallback = await checkDeliverooWithFallback(
-			record.menuUrl,
-			undefined,
-			record.menuId,
-		);
-		deliverooVerified =
-			fallback.pageState !== "unknown" ? fallback.pageState : undefined;
+		if (gatePlatform === "deliveroo") {
+			const fallback = await checkDeliverooWithFallback(
+				record.menuUrl,
+				undefined,
+				record.menuId,
+			);
+			deliverooVerified =
+				fallback.pageState !== "unknown" ? fallback.pageState : undefined;
+		}
+		if (gatePlatform === "justeat") {
+			await checkJustEatWithFallback(record.menuUrl, undefined, record.menuId);
+		}
 	}
 
 	const evidence: FailedMenuEvidence = {
