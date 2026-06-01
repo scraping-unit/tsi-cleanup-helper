@@ -7,7 +7,7 @@ import type { UrlCheckEvidence } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
-const ENHANCED_CHECK_PLATFORMS = new Set<MenuPlatform>(["Deliveroo"]);
+const ENHANCED_CHECK_PLATFORMS = new Set<MenuPlatform>(["Deliveroo", "JustEat"]);
 
 const impitClient = new Impit({ browser: "chrome" });
 

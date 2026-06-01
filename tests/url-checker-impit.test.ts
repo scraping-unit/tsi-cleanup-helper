@@ -29,7 +29,7 @@ vi.mock("impit", () => ({
 	ImpitError: class ImpitError extends Error {},
 }));
 
-describe("checkUrl (impit path — Deliveroo)", () => {
+describe("checkUrl (impit path — bot-protected platforms)", () => {
 	beforeEach(() => {
 		mockImpitFetch.mockReset();
 	});
@@ -118,19 +118,40 @@ describe("checkUrl (impit path — Deliveroo)", () => {
 		expect(await checkUrl(url)).toEqual({ result: "unknown" });
 	});
 
-	it("non-Deliveroo URL (JustEat) → fetch path used, impit NOT called", async () => {
+	it("JustEat URL, impit 200, no redirect → valid", async () => {
 		const url = "https://www.just-eat.co.uk/restaurants/test";
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				status: 200,
-				url,
-				headers: { get: () => "text/html" },
-			}),
+		mockImpitFetch.mockResolvedValue(
+			makeFakeImpitResponse({ status: 200, url, contentType: "text/html" }),
 		);
 
-		await checkUrl(url);
-		expect(mockImpitFetch).not.toHaveBeenCalled();
+		expect(await checkUrl(url)).toEqual({
+			result: "valid",
+			httpStatus: 200,
+			detectedPlatform: "JustEat",
+			contentType: "text/html",
+		});
+		expect(mockImpitFetch).toHaveBeenCalledTimes(1);
+	});
+
+	it("JustEat URL, impit 403 → not_verifiable", async () => {
+		const url = "https://www.just-eat.co.uk/restaurants/test";
+		mockImpitFetch.mockResolvedValue(makeFakeImpitResponse({ status: 403, url }));
+
+		expect(await checkUrl(url)).toEqual({
+			result: "not_verifiable",
+			httpStatus: 403,
+			detectedPlatform: "JustEat",
+		});
+	});
+
+	it("JustEat URL, impit 429 → not_verifiable", async () => {
+		const url = "https://www.just-eat.co.uk/restaurants/test";
+		mockImpitFetch.mockResolvedValue(makeFakeImpitResponse({ status: 429, url }));
+
+		expect(await checkUrl(url)).toEqual({
+			result: "not_verifiable",
+			httpStatus: 429,
+			detectedPlatform: "JustEat",
+		});
 	});
 });

@@ -408,17 +408,18 @@ describe("checkUrl", () => {
 	});
 
 	it("non-UberEats URL does not trigger a content fetch", async () => {
+		const url = "https://foodhub.co.uk/menu/test";
 		const fetchMock = vi.fn().mockResolvedValue(
 			makeFakeResponse({
 				status: 200,
-				url: "https://www.just-eat.co.uk/restaurants/test",
+				url,
 				contentType: "text/html",
 			}),
 		);
 		vi.stubGlobal("fetch", fetchMock);
 
-		const result = await checkUrl("https://www.just-eat.co.uk/restaurants/test");
-		expect(result.detectedPlatform).toBe("JustEat");
+		const result = await checkUrl(url);
+		expect(result.detectedPlatform).toBe("Foodhub");
 		expect(result.contentSignal).toBeUndefined();
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});

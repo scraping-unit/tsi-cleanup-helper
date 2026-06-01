@@ -3,12 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { processFailedMenuRecord } from "../src/domain/row-processor.js";
 import type { NormalizedFailedMenuRecord, UrlCheckEvidence } from "../src/domain/types.js";
 
-const { mockCheckDeliverooWithFallback } = vi.hoisted(() => ({
+const { mockCheckDeliverooWithFallback, mockCheckJustEatWithFallback } = vi.hoisted(() => ({
 	mockCheckDeliverooWithFallback: vi.fn(),
+	mockCheckJustEatWithFallback: vi.fn(),
 }));
 
 vi.mock("../src/domain/deliveroo-fallback.js", () => ({
 	checkDeliverooWithFallback: mockCheckDeliverooWithFallback,
+}));
+
+vi.mock("../src/domain/justeat-fallback.js", () => ({
+	checkJustEatWithFallback: mockCheckJustEatWithFallback,
 }));
 
 const baseRecord: NormalizedFailedMenuRecord = {
@@ -32,6 +37,11 @@ describe("processFailedMenuRecord", () => {
 		mockCheckDeliverooWithFallback.mockReset();
 		mockCheckDeliverooWithFallback.mockResolvedValue({
 			pageState: "live_menu",
+			tier: "browser",
+		});
+		mockCheckJustEatWithFallback.mockReset();
+		mockCheckJustEatWithFallback.mockResolvedValue({
+			pageState: "unknown",
 			tier: "browser",
 		});
 		consoleLog = vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -193,6 +203,49 @@ describe("processFailedMenuRecord", () => {
 
 		expect(consoleLog).toHaveBeenCalledWith(
 			"[row-processor] id=menu-1 url_result=not_verifiable platform=deliveroo fallback_will_fire=true",
+		);
+	});
+
+	it("runs JustEat fallback for not-verifiable JustEat URLs and keeps manual review", async () => {
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://www.just-eat.co.uk/restaurants/test",
+		};
+		const checker = makeChecker({
+			result: "not_verifiable",
+			httpStatus: 403,
+			detectedPlatform: "JustEat",
+		});
+
+		const row = await processFailedMenuRecord(record, checker);
+
+		expect(mockCheckJustEatWithFallback).toHaveBeenCalledWith(
+			record.menuUrl,
+			undefined,
+			record.menuId,
+		);
+		expect(row.deliverooVerified).toBeUndefined();
+		expect(row.recommendedStatus).toBe("Other");
+		expect(row.confidence).toBe("low");
+		expect(row.needsEscalation).toBe(true);
+		expect(row.recommendationReason).toBe("platform_automated_check_not_possible");
+	});
+
+	it("logs the JustEat fallback gate decision", async () => {
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://www.just-eat.co.uk/restaurants/test",
+		};
+		const checker = makeChecker({
+			result: "not_verifiable",
+			httpStatus: 403,
+			detectedPlatform: "JustEat",
+		});
+
+		await processFailedMenuRecord(record, checker);
+
+		expect(consoleLog).toHaveBeenCalledWith(
+			"[row-processor] id=menu-1 url_result=not_verifiable platform=justeat fallback_will_fire=true",
 		);
 	});
 });
