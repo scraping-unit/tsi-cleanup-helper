@@ -2,7 +2,7 @@
 
 Internal tool for reviewing failed menus from TSI scraping clusters. Reviewers upload a CSV of failed menus, the tool checks each URL and returns a recommendation per row, and the processed results can be downloaded as a CSV.
 
-This tool gathers evidence and recommends. It does not write back to any production system.
+This tool gathers evidence and recommends. It does not write back to any production system yet.
 
 ---
 
