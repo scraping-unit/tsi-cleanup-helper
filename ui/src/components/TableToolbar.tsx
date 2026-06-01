@@ -74,7 +74,7 @@ interface TableToolbarProps {
   table: Table<DisplayRow>;
   globalFilter: string;
   onGlobalFilterChange: (v: string) => void;
-  csvHref: string;
+  csvHref: string | null;
   onReset: () => void;
 }
 
@@ -271,8 +271,9 @@ export function TableToolbar({
         >
           Upload another file
         </button>
-        <a href={csvHref} download="tsi-cleanup-export.csv" style={{ textDecoration: 'none' }}>
+        <a href={csvHref ?? undefined} download="tsi-cleanup-export.csv" style={{ textDecoration: 'none' }}>
           <button
+            disabled={csvHref === null}
             style={{
               fontFamily: 'Outfit, sans-serif',
               fontSize: '13px',
@@ -283,11 +284,16 @@ export function TableToolbar({
               borderRadius: '6px',
               height: '34px',
               padding: '0 16px',
-              cursor: 'pointer',
+              cursor: csvHref === null ? 'not-allowed' : 'pointer',
+              opacity: csvHref === null ? 0.7 : 1,
               transition: 'background-color 150ms ease-out',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#D4521E'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#EE612C'; }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#D4521E';
+            }}
+            onMouseLeave={(e) => {
+              if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#EE612C';
+            }}
           >
             Download CSV
           </button>

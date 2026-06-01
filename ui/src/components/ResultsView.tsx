@@ -285,12 +285,13 @@ export function ResultsView({
   onReset,
 }: ResultsViewProps) {
   const displayRows = useMemo(() => toDisplayRows(result.results), [result]);
+  const [csvHref, setCsvHref] = useState<string | null>(null);
 
-  const csvHref = useMemo(
-    () => URL.createObjectURL(new Blob([csv], { type: "text/csv" })),
-    [csv],
-  );
-  useEffect(() => () => URL.revokeObjectURL(csvHref), [csvHref]);
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    setCsvHref(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [csv]);
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
