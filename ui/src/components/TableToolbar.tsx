@@ -13,7 +13,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CLEANUP_STATUSES, CONFIDENCE_VALUES } from "../types";
+import { CONFIDENCE_VALUES } from "../types";
+import { REVIEWER_ACTIONS } from "../lib/toDisplayRows";
 import type { DisplayRow } from "../lib/toDisplayRows";
 
 const URL_RESULT_VALUES = [
@@ -42,6 +43,7 @@ const COLUMN_LABELS: Record<string, string> = {
   menuId: "Menu ID",
   detectedPlatform: "Platform",
   deliverooVerified: "Deliveroo State",
+  recommendedStatus: "Cleanup Status",
   recommendationReason: "Reason",
   candidateNewUrl: "New URL",
 };
@@ -50,6 +52,7 @@ const HIDDEN_TOGGLEABLE_COLUMNS = [
   "menuId",
   "detectedPlatform",
   "deliverooVerified",
+  "recommendedStatus",
   "recommendationReason",
   "candidateNewUrl",
   "brandId",
@@ -93,12 +96,12 @@ export function TableToolbar({
   csvHref,
   onReset,
 }: TableToolbarProps) {
-  const statusCol = table.getColumn("recommendedStatus");
+  const actionCol = table.getColumn("reviewerAction");
   const confidenceCol = table.getColumn("confidence");
   const urlResultCol = table.getColumn("currentUrlResult");
 
-  const statusValue =
-    (statusCol?.getFilterValue() as string | undefined) ?? "";
+  const actionValue =
+    (actionCol?.getFilterValue() as string | undefined) ?? "";
   const confidenceValue =
     (confidenceCol?.getFilterValue() as string | undefined) ?? "";
   const urlResultValue =
@@ -106,13 +109,13 @@ export function TableToolbar({
 
   const hasFilters =
     globalFilter !== "" ||
-    statusValue !== "" ||
+    actionValue !== "" ||
     confidenceValue !== "" ||
     urlResultValue !== "";
 
   function clearFilters() {
     onGlobalFilterChange("");
-    statusCol?.setFilterValue(undefined);
+    actionCol?.setFilterValue(undefined);
     confidenceCol?.setFilterValue(undefined);
     urlResultCol?.setFilterValue(undefined);
   }
@@ -141,17 +144,17 @@ export function TableToolbar({
       />
 
       <Select
-        value={statusValue || "all"}
+        value={actionValue || "all"}
         onValueChange={(v) =>
-          statusCol?.setFilterValue(v === "all" ? undefined : v)
+          actionCol?.setFilterValue(v === "all" ? undefined : v)
         }
       >
         <SelectTrigger className="w-44" style={{ height: '34px', ...selectTextStyle }}>
-          <SelectValue placeholder="All statuses" />
+          <SelectValue placeholder="All actions" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all" style={selectTextStyle}>All statuses</SelectItem>
-          {CLEANUP_STATUSES.map((s) => (
+          <SelectItem value="all" style={selectTextStyle}>All actions</SelectItem>
+          {REVIEWER_ACTIONS.map((s) => (
             <SelectItem key={s} value={s} style={selectTextStyle}>
               {s}
             </SelectItem>

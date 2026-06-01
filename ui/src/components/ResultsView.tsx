@@ -33,6 +33,12 @@ const urlCellStyle: React.CSSProperties = {
   textDecoration: 'none',
 };
 
+const URL_HEALTH_STYLES: Record<DisplayRow["urlHealth"], { color: string; label: string }> = {
+  accessible: { color: '#2D7A4F', label: 'accessible' },
+  dead: { color: '#B83030', label: 'dead' },
+  unverifiable: { color: '#A05C00', label: 'unverifiable' },
+};
+
 const COLUMNS = [
   col.accessor("currentMenuUrl", {
     header: "URL",
@@ -52,6 +58,26 @@ const COLUMNS = [
   col.accessor("currentUrlResult", {
     header: "Status",
     enableSorting: true,
+    cell: (info) => {
+      const { color, label } = URL_HEALTH_STYLES[info.row.original.urlHealth];
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span
+            role="img"
+            aria-label={`URL health: ${label}`}
+            title={`URL health: ${label}`}
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '999px',
+              backgroundColor: color,
+              flex: '0 0 auto',
+            }}
+          />
+          <span>{info.getValue()}</span>
+        </span>
+      );
+    },
   }),
   col.accessor("httpStatus", {
     header: "HTTP",
@@ -62,13 +88,13 @@ const COLUMNS = [
       </span>
     ),
   }),
-  col.accessor("recommendedStatus", {
+  col.accessor("reviewerAction", {
     header: "Recommendation",
     enableSorting: true,
     cell: (info) => {
       const row = info.row.original;
       if (row._kind === "error") return null;
-      return <StatusBadge status={info.getValue()} />;
+      return <StatusBadge action={info.getValue()} />;
     },
   }),
   col.accessor("confidence", {
@@ -135,6 +161,10 @@ const COLUMNS = [
         <span style={{ color: '#6B4230', fontSize: '12px' }}>{info.getValue()}</span>
       );
     },
+  }),
+  col.accessor("recommendedStatus", {
+    header: "Cleanup Status",
+    enableSorting: true,
   }),
   col.accessor("candidateNewUrl", {
     header: "New URL",
@@ -221,6 +251,7 @@ const COLUMNS = [
 
 const DEFAULT_HIDDEN: VisibilityState = {
   menuId: false,
+  recommendedStatus: false,
   recommendationReason: false,
   candidateNewUrl: false,
   detectedPlatform: false,

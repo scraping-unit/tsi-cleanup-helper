@@ -1,31 +1,18 @@
-import type { CleanupStatus } from "../types";
+import type { ReviewerAction } from "../lib/toDisplayRows";
 
-const STATUS_COLORS: Record<CleanupStatus, { bg: string; text: string }> = {
-  "No need to update - Still valid": { bg: '#E8F7EF', text: '#2D7A4F' },
-  "URL Updated":                     { bg: '#FFF0CC', text: '#A05C00' },
-  "Excluded":                        { bg: '#FDECEA', text: '#B83030' },
-  "Format updated":                  { bg: '#FFF0CC', text: '#A05C00' },
-  "Moved to another brand":          { bg: '#F0EAF8', text: '#5C3D8F' },
-  "Pending":                         { bg: '#F4F0ED', text: '#555555' },
-  "Other":                           { bg: '#F4F0ED', text: '#555555' },
-};
-
-const STATUS_LABELS: Record<CleanupStatus, string> = {
-  "No need to update - Still valid": "Still valid",
-  "URL Updated":                     "URL Updated",
-  "Excluded":                        "Excluded",
-  "Format updated":                  "Format updated",
-  "Moved to another brand":          "Moved",
-  "Pending":                         "Pending",
-  "Other":                           "Other",
+const ACTION_COLORS: Record<ReviewerAction, { bg: string; text: string }> = {
+  "Valid":          { bg: '#E8F7EF', text: '#2D7A4F' },
+  "Update URL":     { bg: '#FFF0CC', text: '#A05C00' },
+  "Exclude":        { bg: '#FDECEA', text: '#B83030' },
+  "Check manually": { bg: '#F4F0ED', text: '#555555' },
 };
 
 interface StatusBadgeProps {
-  status: CleanupStatus;
+  action: ReviewerAction;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-  const { bg, text } = STATUS_COLORS[status];
+export function StatusBadge({ action }: StatusBadgeProps) {
+  const { bg, text } = ACTION_COLORS[action];
   return (
     <span
       style={{
@@ -41,7 +28,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         whiteSpace: 'nowrap',
       }}
     >
-      {STATUS_LABELS[status]}
+      {action}
     </span>
   );
 }
