@@ -39,6 +39,8 @@ export type MenuPlatform =
 
 export type BrandMatch = boolean | "unknown";
 
+export type DeliverooPageState = "live_menu" | "not_found" | "closed" | "unknown";
+
 export type NormalizedFailedMenuRecord = {
   brandId: string;
   brandName: string;
@@ -68,6 +70,7 @@ export type ProcessedOutputRow = {
   httpStatus?: number;
   finalUrl?: string;
   detectedPlatform?: MenuPlatform;
+  deliverooVerified?: DeliverooPageState;
   contentType?: string;
   contentSignal?: ContentSignal;
   formatDetected?: string;

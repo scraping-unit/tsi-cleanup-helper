@@ -222,4 +222,53 @@ describe("recommendCleanupStatus", () => {
 				"URL could not be verified — platform blocks automated checks. Manual verification required.",
 		});
 	});
+
+	it("recommends no update when Deliveroo fallback verifies a live menu", () => {
+		expect(
+			recommendCleanupStatus({
+				checkState: "checked",
+				currentUrl: { result: "not_verifiable", httpStatus: 403 },
+				deliverooVerified: "live_menu",
+			}),
+		).toEqual({
+			recommended_status: "No need to update - Still valid",
+			confidence: "medium",
+			recommendation_reason: "deliveroo_verified_live",
+			needs_escalation: false,
+		});
+	});
+
+	it("recommends human-gated exclusion when Deliveroo fallback verifies not found", () => {
+		expect(
+			recommendCleanupStatus({
+				checkState: "checked",
+				currentUrl: { result: "not_verifiable", httpStatus: 403 },
+				deliverooVerified: "not_found",
+			}),
+		).toEqual({
+			recommended_status: "Excluded",
+			confidence: "medium",
+			recommendation_reason: "deliveroo_verified_not_found",
+			needs_escalation: true,
+			escalation_reason:
+				"Deliveroo URL confirmed not found by browser — replacement or exclusion required; human confirmation needed.",
+		});
+	});
+
+	it("recommends human-gated exclusion when Deliveroo fallback verifies closed", () => {
+		expect(
+			recommendCleanupStatus({
+				checkState: "checked",
+				currentUrl: { result: "not_verifiable", httpStatus: 403 },
+				deliverooVerified: "closed",
+			}),
+		).toEqual({
+			recommended_status: "Excluded",
+			confidence: "medium",
+			recommendation_reason: "deliveroo_verified_closed",
+			needs_escalation: true,
+			escalation_reason:
+				"Deliveroo menu verified as closed by browser — exclude candidate pending human confirmation.",
+		});
+	});
 });

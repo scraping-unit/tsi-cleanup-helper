@@ -9,7 +9,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { cn } from "@/lib/utils";
+import { ChevronRight } from "lucide-react";
 import type { BatchProcessResult, CsvRowError } from "../types";
 import { toDisplayRows, type DisplayRow } from "../lib/toDisplayRows";
 import { StatusBadge } from "./StatusBadge";
@@ -21,25 +21,28 @@ import { ResultsTable } from "./ResultsTable";
 
 const col = createColumnHelper<DisplayRow>();
 
+const urlCellStyle: React.CSSProperties = {
+  fontFamily: 'JetBrains Mono, monospace',
+  fontSize: '12px',
+  color: '#1A120B',
+  display: 'block',
+  maxWidth: '220px',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  textDecoration: 'none',
+};
+
 const COLUMNS = [
-  col.accessor("brandName", {
-    header: "Brand",
-    enableSorting: true,
-    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
-  }),
-  col.accessor("menuId", {
-    header: "Menu ID",
-    enableSorting: false,
-  }),
   col.accessor("currentMenuUrl", {
-    header: "Menu URL",
+    header: "URL",
     enableSorting: false,
     cell: (info) => (
       <a
         href={info.getValue()}
         target="_blank"
         rel="noreferrer"
-        className="max-w-[200px] truncate block text-blue-600 hover:underline"
+        style={urlCellStyle}
         title={info.getValue()}
       >
         {info.getValue()}
@@ -47,21 +50,20 @@ const COLUMNS = [
     ),
   }),
   col.accessor("currentUrlResult", {
-    header: "URL Result",
+    header: "Status",
     enableSorting: true,
   }),
   col.accessor("httpStatus", {
     header: "HTTP",
     enableSorting: true,
-    cell: (info) => info.getValue() ?? "—",
-  }),
-  col.accessor("detectedPlatform", {
-    header: "Platform",
-    enableSorting: true,
-    cell: (info) => info.getValue() ?? "—",
+    cell: (info) => (
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
+        {info.getValue() ?? "—"}
+      </span>
+    ),
   }),
   col.accessor("recommendedStatus", {
-    header: "Recommended",
+    header: "Recommendation",
     enableSorting: true,
     cell: (info) => {
       const row = info.row.original;
@@ -78,6 +80,45 @@ const COLUMNS = [
       return <ConfidenceBadge confidence={info.getValue()} />;
     },
   }),
+  col.display({
+    id: "action",
+    header: "",
+    cell: () => (
+      <button
+        type="button"
+        className="flex items-center justify-center"
+        style={{
+          width: '24px',
+          height: '24px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#6B4230',
+          transition: 'color 150ms ease-out',
+          padding: 0,
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#EE612C'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6B4230'; }}
+        onClick={() => {}}
+        aria-label="View details"
+      >
+        <ChevronRight size={16} />
+      </button>
+    ),
+  }),
+  col.accessor("brandName", {
+    header: "Brand",
+    enableSorting: true,
+    cell: (info) => (
+      <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontWeight: 500 }}>
+        {info.getValue()}
+      </span>
+    ),
+  }),
+  col.accessor("menuId", {
+    header: "Menu ID",
+    enableSorting: false,
+  }),
   col.accessor("recommendationReason", {
     header: "Reason",
     enableSorting: false,
@@ -85,10 +126,14 @@ const COLUMNS = [
       const row = info.row.original;
       if (row._kind === "error") {
         return (
-          <span className="italic text-red-500 text-xs">{row._error}</span>
+          <span style={{ fontStyle: 'italic', color: '#B83030', fontSize: '12px' }}>
+            {row._error}
+          </span>
         );
       }
-      return <span className="text-muted-foreground">{info.getValue()}</span>;
+      return (
+        <span style={{ color: '#6B4230', fontSize: '12px' }}>{info.getValue()}</span>
+      );
     },
   }),
   col.accessor("candidateNewUrl", {
@@ -102,13 +147,23 @@ const COLUMNS = [
           href={val}
           target="_blank"
           rel="noreferrer"
-          className="max-w-[200px] truncate block text-blue-600 hover:underline"
+          style={{ ...urlCellStyle, color: '#EE612C' }}
           title={val}
         >
           {val}
         </a>
       );
     },
+  }),
+  col.accessor("detectedPlatform", {
+    header: "Platform",
+    enableSorting: true,
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  col.accessor("deliverooVerified", {
+    header: "Deliveroo State",
+    enableSorting: true,
+    cell: (info) => info.getValue() ?? "—",
   }),
   col.accessor("brandId", { header: "Brand ID", enableSorting: false }),
   col.accessor("clusterId", { header: "Cluster ID", enableSorting: false }),
@@ -165,6 +220,11 @@ const COLUMNS = [
 ];
 
 const DEFAULT_HIDDEN: VisibilityState = {
+  menuId: false,
+  recommendationReason: false,
+  candidateNewUrl: false,
+  detectedPlatform: false,
+  deliverooVerified: false,
   brandId: false,
   clusterId: false,
   templateName: false,
@@ -228,9 +288,9 @@ export function ResultsView({
   });
 
   return (
-    <div className={cn("px-4 pb-8")}>
+    <div className="flex flex-col flex-1 overflow-hidden">
       {importErrors.length > 0 && (
-        <div className="mt-4">
+        <div className="px-4 pt-3">
           <ImportErrorBanner errors={importErrors} />
         </div>
       )}
@@ -242,7 +302,9 @@ export function ResultsView({
         csvHref={csvHref}
         onReset={onReset}
       />
-      <ResultsTable table={table} />
+      <div className="flex-1 overflow-hidden">
+        <ResultsTable table={table} />
+      </div>
     </div>
   );
 }

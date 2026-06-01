@@ -12,7 +12,8 @@
 	"dependencies": {
 		"@hono/node-server": "^1",
 		"hono": "^4",
-		"impit": "^0.14.0"
+		"impit": "^0.14.0",
+		"patchright": "1.60.1"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

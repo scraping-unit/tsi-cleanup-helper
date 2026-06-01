@@ -44,7 +44,7 @@ const BASE_ROW: ProcessedOutputRow = {
 	needsEscalation: false,
 };
 
-const HEADER_COUNT = 32;
+const HEADER_COUNT = 33;
 
 function parseRows(csv: string): string[][] {
 	return csv.split("\r\n").map((line) => line.split(","));
@@ -83,7 +83,7 @@ describe("exportBatchResultsToCsv", () => {
 		expect(csv).not.toMatch(/\r\n$/);
 	});
 
-	it("header row has exactly 32 columns", () => {
+	it("header row has exactly 33 columns", () => {
 		const csv = exportBatchResultsToCsv([]);
 		const headers = csv.split("\r\n")[0]!.split(",");
 		expect(headers).toHaveLength(HEADER_COUNT);
@@ -96,9 +96,10 @@ describe("exportBatchResultsToCsv", () => {
 		expect(headers[5]).toBe("menu_url");
 		expect(headers[6]).toBe("scraping_status");
 		expect(headers[14]).toBe("current_url_result");
-		expect(headers[24]).toBe("recommended_status");
-		expect(headers[29]).toBe("needs_escalation");
-		expect(headers[31]).toBe("processing_error");
+		expect(headers[18]).toBe("deliveroo_verified");
+		expect(headers[25]).toBe("recommended_status");
+		expect(headers[30]).toBe("needs_escalation");
+		expect(headers[32]).toBe("processing_error");
 	});
 
 	it("success row has same column count as header row", () => {
@@ -139,32 +140,40 @@ describe("exportBatchResultsToCsv", () => {
 		expect(data[15]).toBe("200"); // http_status
 		expect(data[16]).toBe("https://example.com/menu"); // final_url
 		expect(data[17]).toBe("Deliveroo"); // detected_platform
-		expect(data[18]).toBe("text/html"); // content_type
-		expect(data[19]).toBe("html"); // format_detected
-		expect(data[20]).toBe("true"); // menu_content_detected
-		expect(data[21]).toBe("true"); // brand_match
+		expect(data[18]).toBe(""); // deliveroo_verified
+		expect(data[19]).toBe("text/html"); // content_type
+		expect(data[20]).toBe("html"); // format_detected
+		expect(data[21]).toBe("true"); // menu_content_detected
+		expect(data[22]).toBe("true"); // brand_match
+	});
+
+	it("success row serializes Deliveroo verified state", () => {
+		const row: ProcessedOutputRow = { ...BASE_ROW, deliverooVerified: "live_menu" };
+		const results: BatchRowResult[] = [{ ok: true, row }];
+		const rows = parseRows(exportBatchResultsToCsv(results));
+		expect(rows[1]![18]).toBe("live_menu");
 	});
 
 	it("menuContentDetected false serializes as 'false' not empty string", () => {
 		const row: ProcessedOutputRow = { ...BASE_ROW, menuContentDetected: false };
 		const results: BatchRowResult[] = [{ ok: true, row }];
 		const rows = parseRows(exportBatchResultsToCsv(results));
-		expect(rows[1]![20]).toBe("false");
+		expect(rows[1]![21]).toBe("false");
 	});
 
 	it("needsEscalation true serializes as 'true'", () => {
 		const row: ProcessedOutputRow = { ...BASE_ROW, needsEscalation: true, escalationReason: "Reason" };
 		const results: BatchRowResult[] = [{ ok: true, row }];
 		const rows = parseRows(exportBatchResultsToCsv(results));
-		expect(rows[1]![29]).toBe("true"); // needs_escalation
-		expect(rows[1]![30]).toBe("Reason"); // escalation_reason
+		expect(rows[1]![30]).toBe("true"); // needs_escalation
+		expect(rows[1]![31]).toBe("Reason"); // escalation_reason
 	});
 
 	it("brandMatch 'unknown' serializes as 'unknown'", () => {
 		const row: ProcessedOutputRow = { ...BASE_ROW, brandMatch: "unknown" };
 		const results: BatchRowResult[] = [{ ok: true, row }];
 		const rows = parseRows(exportBatchResultsToCsv(results));
-		expect(rows[1]![21]).toBe("unknown");
+		expect(rows[1]![22]).toBe("unknown");
 	});
 
 	it("httpStatus 404 serializes as '404'", () => {
@@ -197,9 +206,10 @@ describe("exportBatchResultsToCsv", () => {
 		expect(data[15]).toBe(""); // http_status
 		expect(data[16]).toBe(""); // final_url
 		expect(data[17]).toBe(""); // detected_platform
-		expect(data[22]).toBe(""); // candidate_new_url
-		expect(data[27]).toBe(""); // human_final_status
-		expect(data[28]).toBe(""); // human_comment
+		expect(data[18]).toBe(""); // deliveroo_verified
+		expect(data[23]).toBe(""); // candidate_new_url
+		expect(data[28]).toBe(""); // human_final_status
+		expect(data[29]).toBe(""); // human_comment
 	});
 
 	it("error row uses sentinel values for computed fields", () => {
@@ -212,11 +222,12 @@ describe("exportBatchResultsToCsv", () => {
 		const rows = parseRows(exportBatchResultsToCsv([result]));
 		const data = rows[1]!;
 		expect(data[14]).toBe("not_checked"); // current_url_result
-		expect(data[24]).toBe("Pending"); // recommended_status
-		expect(data[25]).toBe("low"); // confidence
-		expect(data[26]).toBe("Processing error"); // recommendation_reason
-		expect(data[29]).toBe("false"); // needs_escalation
-		expect(data[31]).toBe("Something went wrong"); // processing_error
+		expect(data[18]).toBe(""); // deliveroo_verified
+		expect(data[25]).toBe("Pending"); // recommended_status
+		expect(data[26]).toBe("low"); // confidence
+		expect(data[27]).toBe("Processing error"); // recommendation_reason
+		expect(data[30]).toBe("false"); // needs_escalation
+		expect(data[32]).toBe("Something went wrong"); // processing_error
 	});
 
 	it("error row populates identity fields from record", () => {
@@ -271,7 +282,7 @@ describe("exportBatchResultsToCsv", () => {
 	it("success row processing_error column is empty", () => {
 		const results: BatchRowResult[] = [{ ok: true, row: BASE_ROW }];
 		const rows = parseRows(exportBatchResultsToCsv(results));
-		expect(rows[1]![31]).toBe(""); // processing_error
+		expect(rows[1]![32]).toBe(""); // processing_error
 	});
 
 	it("value containing comma in recommendation_reason is quoted", () => {

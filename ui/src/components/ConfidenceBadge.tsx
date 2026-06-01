@@ -1,10 +1,9 @@
-import { cn } from "@/lib/utils";
 import type { Confidence } from "../types";
 
-const CONFIDENCE_CLASSES: Record<Confidence, string> = {
-  high: "bg-green-100 text-green-800 border-green-200",
-  medium: "bg-amber-100 text-amber-800 border-amber-200",
-  low: "bg-red-100 text-red-800 border-red-200",
+const CONFIDENCE_COLORS: Record<Confidence, { bg: string; text: string }> = {
+  high:   { bg: '#E8F7EF', text: '#2D7A4F' },
+  medium: { bg: '#FFF0CC', text: '#A05C00' },
+  low:    { bg: '#FDECEA', text: '#B83030' },
 };
 
 interface ConfidenceBadgeProps {
@@ -12,14 +11,23 @@ interface ConfidenceBadgeProps {
 }
 
 export function ConfidenceBadge({ confidence }: ConfidenceBadgeProps) {
+  const { bg, text } = CONFIDENCE_COLORS[confidence];
   return (
     <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
-        CONFIDENCE_CLASSES[confidence],
-      )}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        backgroundColor: bg,
+        color: text,
+        fontFamily: 'Outfit, sans-serif',
+        fontWeight: 500,
+        fontSize: '12px',
+        borderRadius: '5px',
+        padding: '2px 8px',
+        whiteSpace: 'nowrap',
+      }}
     >
-      {confidence}
+      {confidence.charAt(0).toUpperCase() + confidence.slice(1)}
     </span>
   );
 }

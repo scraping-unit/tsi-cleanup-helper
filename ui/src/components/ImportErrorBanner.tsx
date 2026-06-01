@@ -11,16 +11,32 @@ export function ImportErrorBanner({ errors }: ImportErrorBannerProps) {
   if (dismissed || errors.length === 0) return null;
 
   return (
-    <div className="flex items-center justify-between gap-4 border border-amber-200 bg-amber-50 text-amber-800 px-4 py-2.5 text-sm rounded-md">
+    <div
+      className="flex items-center justify-between gap-4 px-4 py-2.5"
+      style={{
+        backgroundColor: '#FFF0CC',
+        color: '#A05C00',
+        borderRadius: '6px',
+        fontFamily: 'Outfit, sans-serif',
+        fontSize: '13px',
+      }}
+    >
       <span>
-        {errors.length} row{errors.length !== 1 ? "s" : ""} were skipped during
-        CSV import due to parse errors.
+        {errors.length} row{errors.length !== 1 ? "s" : ""} skipped during CSV import due to parse errors.
       </span>
       <button
         type="button"
         aria-label="Dismiss"
         onClick={() => setDismissed(true)}
-        className="shrink-0 text-amber-600 hover:text-amber-900 leading-none"
+        style={{
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#A05C00',
+          fontSize: '16px',
+          lineHeight: 1,
+          padding: 0,
+        }}
       >
         ×
       </button>

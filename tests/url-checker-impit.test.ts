@@ -69,14 +69,22 @@ describe("checkUrl (impit path — Deliveroo)", () => {
 		const url = "https://deliveroo.co.uk/menu/test";
 		mockImpitFetch.mockResolvedValue(makeFakeImpitResponse({ status: 403, url }));
 
-		expect(await checkUrl(url)).toEqual({ result: "not_verifiable", httpStatus: 403 });
+		expect(await checkUrl(url)).toEqual({
+			result: "not_verifiable",
+			httpStatus: 403,
+			detectedPlatform: "Deliveroo",
+		});
 	});
 
 	it("Deliveroo URL, impit 429 → not_verifiable", async () => {
 		const url = "https://deliveroo.co.uk/menu/test";
 		mockImpitFetch.mockResolvedValue(makeFakeImpitResponse({ status: 429, url }));
 
-		expect(await checkUrl(url)).toEqual({ result: "not_verifiable", httpStatus: 429 });
+		expect(await checkUrl(url)).toEqual({
+			result: "not_verifiable",
+			httpStatus: 429,
+			detectedPlatform: "Deliveroo",
+		});
 	});
 
 	it("Deliveroo URL, impit 404 → inaccessible", async () => {

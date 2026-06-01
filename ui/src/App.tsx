@@ -8,7 +8,7 @@ import { ResultsView } from "./components/ResultsView";
 
 type AppPhase =
   | { phase: "idle" }
-  | { phase: "loading" }
+  | { phase: "loading"; fileName: string }
   | { phase: "results"; result: BatchProcessResult; csv: string; importErrors: CsvRowError[] }
   | { phase: "error"; message: string };
 
@@ -16,7 +16,7 @@ export default function App() {
   const [state, setState] = useState<AppPhase>({ phase: "idle" });
 
   async function handleFile(file: File) {
-    setState({ phase: "loading" });
+    setState({ phase: "loading", fileName: file.name });
     try {
       const body = new FormData();
       body.append("file", file);
@@ -44,10 +44,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader />
-      <main className="flex-1">
+      <AppHeader phase={state.phase} />
+      <main className="flex-1 flex flex-col">
         {state.phase === "idle" && <UploadArea onFile={handleFile} />}
-        {state.phase === "loading" && <ProcessingView />}
+        {state.phase === "loading" && <ProcessingView fileName={state.fileName} />}
         {state.phase === "error" && (
           <ErrorView message={state.message} onReset={handleReset} />
         )}

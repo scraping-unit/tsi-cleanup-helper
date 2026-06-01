@@ -1,49 +1,70 @@
-import { Fragment } from "react";
-import type { BatchSummary, CleanupStatus } from "../types";
-import { CLEANUP_STATUSES } from "../types";
-
-const STATUS_SHORT: Record<CleanupStatus, string> = {
-  "No need to update - Still valid": "Still valid",
-  "URL Updated": "URL Updated",
-  Excluded: "Excluded",
-  "Format updated": "Format updated",
-  "Moved to another brand": "Moved",
-  Pending: "Pending",
-  Other: "Other",
-};
+import type { BatchSummary } from "../types";
 
 interface SummaryBarProps {
   summary: BatchSummary;
 }
 
-function Chip({ label, count }: { label: string; count: number }) {
+interface TileProps {
+  label: string;
+  value: number;
+  valueColor?: string;
+}
+
+function Tile({ label, value, valueColor = '#1A120B' }: TileProps) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-0.5 text-xs bg-secondary text-secondary-foreground whitespace-nowrap">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{count}</span>
-    </span>
+    <div className="flex-1 flex flex-col items-center justify-center gap-1 px-6">
+      <span
+        style={{
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 700,
+          fontSize: '28px',
+          color: valueColor,
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </span>
+      <span
+        style={{
+          fontFamily: 'Outfit, sans-serif',
+          fontSize: '11px',
+          fontWeight: 400,
+          color: '#6B4230',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
 
 export function SummaryBar({ summary }: SummaryBarProps) {
-  const statusChips = CLEANUP_STATUSES.filter((s) => summary.byStatus[s] > 0);
+  const valid = summary.byStatus["No need to update - Still valid"] ?? 0;
+  const needsReview = (summary.byStatus["Pending"] ?? 0) + (summary.byStatus["Other"] ?? 0);
+  const autoResolved = summary.processed - needsReview;
+
+  const divider = (
+    <div style={{ width: '1px', height: '40px', backgroundColor: 'rgb(238 97 44 / 0.08)' }} />
+  );
 
   return (
-    <div className="flex flex-wrap items-center gap-2 py-3">
-      <Chip label="Total" count={summary.total} />
-      <span className="text-muted-foreground text-xs">·</span>
-      <Chip label="Processed" count={summary.processed} />
-      <span className="text-muted-foreground text-xs">·</span>
-      <Chip label="Errors" count={summary.errors} />
-      {statusChips.map((status) => (
-        <Fragment key={status}>
-          <span className="text-muted-foreground text-xs">·</span>
-          <Chip
-            label={STATUS_SHORT[status]}
-            count={summary.byStatus[status]}
-          />
-        </Fragment>
-      ))}
+    <div
+      className="flex items-center"
+      style={{
+        height: '72px',
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid rgb(238 97 44 / 0.10)',
+      }}
+    >
+      <Tile label="Total" value={summary.total} />
+      {divider}
+      <Tile label="Valid" value={valid} valueColor="#2D7A4F" />
+      {divider}
+      <Tile label="Needs Review" value={needsReview} valueColor="#EE612C" />
+      {divider}
+      <Tile label="Auto-resolved" value={autoResolved} />
     </div>
   );
 }

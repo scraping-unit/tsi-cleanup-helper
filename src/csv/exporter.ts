@@ -22,6 +22,7 @@ const EXPORT_HEADERS = [
 	"http_status",
 	"final_url",
 	"detected_platform",
+	"deliveroo_verified",
 	"content_type",
 	"format_detected",
 	"menu_content_detected",
@@ -85,6 +86,7 @@ export function exportBatchResultsToCsv(results: BatchRowResult[]): string {
 					row.httpStatus?.toString() ?? "",
 					row.finalUrl ?? "",
 					row.detectedPlatform ?? "",
+					row.deliverooVerified ?? "",
 					row.contentType ?? "",
 					row.formatDetected ?? "",
 					String(row.menuContentDetected),
@@ -127,6 +129,7 @@ export function exportBatchResultsToCsv(results: BatchRowResult[]): string {
 					record.menuFormat ?? "",
 					// Group 3: URL check evidence
 					"not_checked",
+					"",
 					"",
 					"",
 					"",

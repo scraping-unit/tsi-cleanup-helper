@@ -77,6 +77,35 @@ export function recommendCleanupStatus(
 	}
 
 	if (evidence.currentUrl.result === "not_verifiable") {
+		const verified = evidence.deliverooVerified;
+
+		if (verified === "live_menu") {
+			return recommendation(
+				"No need to update - Still valid",
+				"medium",
+				"deliveroo_verified_live",
+				false,
+			);
+		}
+		if (verified === "not_found") {
+			return recommendation(
+				"Excluded",
+				"medium",
+				"deliveroo_verified_not_found",
+				true,
+				"Deliveroo URL confirmed not found by browser — replacement or exclusion required; human confirmation needed.",
+			);
+		}
+		if (verified === "closed") {
+			return recommendation(
+				"Excluded",
+				"medium",
+				"deliveroo_verified_closed",
+				true,
+				"Deliveroo menu verified as closed by browser — exclude candidate pending human confirmation.",
+			);
+		}
+
 		return recommendation(
 			"Other",
 			"low",

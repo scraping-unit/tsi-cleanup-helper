@@ -1,7 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { processFailedMenuRecord } from "../src/domain/row-processor.js";
 import type { NormalizedFailedMenuRecord, UrlCheckEvidence } from "../src/domain/types.js";
+
+const { mockCheckDeliverooWithFallback } = vi.hoisted(() => ({
+	mockCheckDeliverooWithFallback: vi.fn(),
+}));
+
+vi.mock("../src/domain/deliveroo-fallback.js", () => ({
+	checkDeliverooWithFallback: mockCheckDeliverooWithFallback,
+}));
 
 const baseRecord: NormalizedFailedMenuRecord = {
 	menuId: "menu-1",
@@ -18,6 +26,21 @@ function makeChecker(evidence: UrlCheckEvidence) {
 }
 
 describe("processFailedMenuRecord", () => {
+	let consoleLog: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(() => {
+		mockCheckDeliverooWithFallback.mockReset();
+		mockCheckDeliverooWithFallback.mockResolvedValue({
+			pageState: "live_menu",
+			tier: "browser",
+		});
+		consoleLog = vi.spyOn(console, "log").mockImplementation(() => undefined);
+	});
+
+	afterEach(() => {
+		consoleLog.mockRestore();
+	});
+
 	it("copies all record fields to output row", async () => {
 		const checker = makeChecker({ result: "inaccessible", httpStatus: 404 });
 		const row = await processFailedMenuRecord(baseRecord, checker);
@@ -136,5 +159,40 @@ describe("processFailedMenuRecord", () => {
 		const row = await processFailedMenuRecord(baseRecord, checker);
 
 		expect(row.contentSignal).toBeUndefined();
+	});
+
+	it("runs Deliveroo fallback for not-verifiable Deliveroo URLs and exposes the verified state", async () => {
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://deliveroo.co.uk/menu/london/test",
+		};
+		const checker = makeChecker({ result: "not_verifiable", httpStatus: 403 });
+		const row = await processFailedMenuRecord(record, checker);
+
+		expect(mockCheckDeliverooWithFallback).toHaveBeenCalledWith(
+			record.menuUrl,
+			undefined,
+			record.menuId,
+		);
+		expect(row.deliverooVerified).toBe("live_menu");
+		expect(row.recommendedStatus).toBe("No need to update - Still valid");
+	});
+
+	it("logs the Deliveroo fallback gate decision", async () => {
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://deliveroo.co.uk/menu/london/test",
+		};
+		const checker = makeChecker({
+			result: "not_verifiable",
+			httpStatus: 403,
+			detectedPlatform: "Deliveroo",
+		});
+
+		await processFailedMenuRecord(record, checker);
+
+		expect(consoleLog).toHaveBeenCalledWith(
+			"[row-processor] id=menu-1 url_result=not_verifiable platform=deliveroo fallback_will_fire=true",
+		);
 	});
 });

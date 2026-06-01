@@ -68,6 +68,14 @@ describe("platform detection", () => {
 		);
 	});
 
+	it.each([
+		"https://deliveroo.co.uk/menu/london/test",
+		"https://www.deliveroo.co.uk/menu/manchester/test",
+		"deliveroo.co.uk/menu/bristol/test",
+	])("detects Deliveroo from %s", (url) => {
+		expect(detectMenuPlatformFromUrl(url)).toBe("Deliveroo");
+	});
+
 	it("returns Unknown for relative URLs", () => {
 		expect(detectMenuPlatformFromUrl("/menu/dinner.pdf")).toBe("Unknown");
 	});

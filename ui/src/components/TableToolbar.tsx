@@ -1,5 +1,4 @@
 import type { Table } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -26,7 +25,33 @@ const URL_RESULT_VALUES = [
   "unknown",
 ] as const;
 
+const COLUMN_LABELS: Record<string, string> = {
+  brandId: "Brand ID",
+  clusterId: "Cluster ID",
+  templateName: "Template",
+  scrapingStatus: "Scraping Status",
+  finalUrl: "Final URL",
+  candidateSource: "Candidate Source",
+  formatDetected: "Format Detected",
+  menuContentDetected: "Content Detected",
+  brandMatch: "Brand Match",
+  needsEscalation: "Escalation",
+  escalationReason: "Escalation Reason",
+  humanFinalStatus: "Human Status",
+  humanComment: "Human Comment",
+  menuId: "Menu ID",
+  detectedPlatform: "Platform",
+  deliverooVerified: "Deliveroo State",
+  recommendationReason: "Reason",
+  candidateNewUrl: "New URL",
+};
+
 const HIDDEN_TOGGLEABLE_COLUMNS = [
+  "menuId",
+  "detectedPlatform",
+  "deliverooVerified",
+  "recommendationReason",
+  "candidateNewUrl",
   "brandId",
   "clusterId",
   "templateName",
@@ -49,6 +74,17 @@ interface TableToolbarProps {
   csvHref: string;
   onReset: () => void;
 }
+
+const toolbarInputStyle: React.CSSProperties = {
+  fontFamily: 'JetBrains Mono, monospace',
+  fontSize: '13px',
+  height: '34px',
+};
+
+const selectTextStyle: React.CSSProperties = {
+  fontFamily: 'Outfit, sans-serif',
+  fontSize: '13px',
+};
 
 export function TableToolbar({
   table,
@@ -86,12 +122,22 @@ export function TableToolbar({
   ).filter(Boolean);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 py-3">
+    <div
+      className="flex flex-wrap items-center gap-2 px-4"
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid rgb(238 97 44 / 0.12)',
+        minHeight: '48px',
+        paddingTop: '8px',
+        paddingBottom: '8px',
+      }}
+    >
       <Input
-        placeholder="Search brand or URL…"
+        placeholder="Filter by URL…"
         value={globalFilter}
         onChange={(e) => onGlobalFilterChange(e.target.value)}
-        className="h-8 w-48 text-xs"
+        className="w-52"
+        style={toolbarInputStyle}
       />
 
       <Select
@@ -100,13 +146,13 @@ export function TableToolbar({
           statusCol?.setFilterValue(v === "all" ? undefined : v)
         }
       >
-        <SelectTrigger className="h-8 w-44 text-xs">
+        <SelectTrigger className="w-44" style={{ height: '34px', ...selectTextStyle }}>
           <SelectValue placeholder="All statuses" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="all" style={selectTextStyle}>All statuses</SelectItem>
           {CLEANUP_STATUSES.map((s) => (
-            <SelectItem key={s} value={s} className="text-xs">
+            <SelectItem key={s} value={s} style={selectTextStyle}>
               {s}
             </SelectItem>
           ))}
@@ -119,14 +165,14 @@ export function TableToolbar({
           confidenceCol?.setFilterValue(v === "all" ? undefined : v)
         }
       >
-        <SelectTrigger className="h-8 w-32 text-xs">
+        <SelectTrigger className="w-32" style={{ height: '34px', ...selectTextStyle }}>
           <SelectValue placeholder="Confidence" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All confidence</SelectItem>
+          <SelectItem value="all" style={selectTextStyle}>All confidence</SelectItem>
           {CONFIDENCE_VALUES.map((c) => (
-            <SelectItem key={c} value={c} className="text-xs">
-              {c}
+            <SelectItem key={c} value={c} style={selectTextStyle}>
+              {c.charAt(0).toUpperCase() + c.slice(1)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -138,13 +184,13 @@ export function TableToolbar({
           urlResultCol?.setFilterValue(v === "all" ? undefined : v)
         }
       >
-        <SelectTrigger className="h-8 w-36 text-xs">
+        <SelectTrigger className="w-36" style={{ height: '34px', ...selectTextStyle }}>
           <SelectValue placeholder="URL result" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All URL results</SelectItem>
+          <SelectItem value="all" style={selectTextStyle}>All URL results</SelectItem>
           {URL_RESULT_VALUES.map((r) => (
-            <SelectItem key={r} value={r} className="text-xs">
+            <SelectItem key={r} value={r} style={selectTextStyle}>
               {r}
             </SelectItem>
           ))}
@@ -153,9 +199,22 @@ export function TableToolbar({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 text-xs">
+          <button
+            style={{
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '13px',
+              fontWeight: 400,
+              color: '#6B4230',
+              background: 'transparent',
+              border: '1px solid rgb(238 97 44 / 0.2)',
+              borderRadius: '6px',
+              height: '34px',
+              padding: '0 12px',
+              cursor: 'pointer',
+            }}
+          >
             Columns
-          </Button>
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           {toggleableColumns.map((col) => {
@@ -165,9 +224,9 @@ export function TableToolbar({
                 key={col.id}
                 checked={col.getIsVisible()}
                 onCheckedChange={(v) => col.toggleVisibility(v)}
-                className="text-xs"
+                style={selectTextStyle}
               >
-                {col.id}
+                {COLUMN_LABELS[col.id] ?? col.id}
               </DropdownMenuCheckboxItem>
             );
           })}
@@ -175,29 +234,60 @@ export function TableToolbar({
       </DropdownMenu>
 
       {hasFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 text-xs"
+        <button
           onClick={clearFilters}
+          style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '13px',
+            color: '#6B4230',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0 4px',
+          }}
         >
           Clear filters
-        </Button>
+        </button>
       )}
 
       <div className="ml-auto flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs"
+        <button
           onClick={onReset}
+          style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '13px',
+            fontWeight: 400,
+            color: '#6B4230',
+            background: 'transparent',
+            border: '1px solid rgb(238 97 44 / 0.2)',
+            borderRadius: '6px',
+            height: '34px',
+            padding: '0 12px',
+            cursor: 'pointer',
+          }}
         >
           Upload another file
-        </Button>
-        <a href={csvHref} download="tsi-cleanup-export.csv">
-          <Button size="sm" className="h-8 text-xs">
+        </button>
+        <a href={csvHref} download="tsi-cleanup-export.csv" style={{ textDecoration: 'none' }}>
+          <button
+            style={{
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: '#FFFFFF',
+              backgroundColor: '#EE612C',
+              border: 'none',
+              borderRadius: '6px',
+              height: '34px',
+              padding: '0 16px',
+              cursor: 'pointer',
+              transition: 'background-color 150ms ease-out',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#D4521E'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#EE612C'; }}
+          >
             Download CSV
-          </Button>
+          </button>
         </a>
       </div>
     </div>

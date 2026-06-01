@@ -17,6 +17,9 @@ importers:
       impit:
         specifier: ^0.14.0
         version: 0.14.0
+      patchright:
+        specifier: 1.60.1
+        version: 1.60.1
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -1684,6 +1687,16 @@ packages:
   p-locate@5.0.0:
     resolution: {integrity: sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==}
     engines: {node: '>=10'}
+
+  patchright-core@1.60.1:
+    resolution: {integrity: sha512-CJ6ulXQkis3MfrA379i6Nw8Xf7BPj8/WbQbk7imcZN7T0NOazWieagPUhC2s6MsUVKpvVSVRHCS52PrX3wDtUg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  patchright@1.60.1:
+    resolution: {integrity: sha512-9T4bWxQ9gwduSPflE5eAAiGHxjMRio8189oxxGfW3OFxhSGOcvLP8xGrsW2ZHkn8aSUqEb33cr74rV12pvwNgg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   path-exists@4.0.0:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
@@ -3463,6 +3476,14 @@ snapshots:
   p-locate@5.0.0:
     dependencies:
       p-limit: 3.1.0
+
+  patchright-core@1.60.1: {}
+
+  patchright@1.60.1:
+    dependencies:
+      patchright-core: 1.60.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   path-exists@4.0.0: {}
 

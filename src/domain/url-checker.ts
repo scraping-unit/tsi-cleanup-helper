@@ -236,7 +236,11 @@ async function attemptImpitGet(
 			return buildEvidence(outcome.response as unknown as Response, url);
 		}
 		if (BLOCKED_STATUSES.has(outcome.response.status)) {
-			return { result: "not_verifiable", httpStatus: outcome.response.status };
+			return {
+				result: "not_verifiable",
+				httpStatus: outcome.response.status,
+				detectedPlatform: detectMenuPlatformFromUrl(url),
+			};
 		}
 		return { result: "inaccessible", httpStatus: outcome.response.status };
 	}
@@ -257,7 +261,11 @@ async function checkUrlWithImpit(
 			return buildEvidence(headOutcome.response as unknown as Response, url);
 		}
 		if (BLOCKED_STATUSES.has(headOutcome.response.status)) {
-			return { result: "not_verifiable", httpStatus: headOutcome.response.status };
+			return {
+				result: "not_verifiable",
+				httpStatus: headOutcome.response.status,
+				detectedPlatform: detectMenuPlatformFromUrl(url),
+			};
 		}
 		if (FALLBACK_TO_GET_STATUSES.has(headOutcome.response.status)) {
 			return attemptImpitGet(url, timeoutMs);

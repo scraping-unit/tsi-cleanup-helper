@@ -1,25 +1,23 @@
-import { cn } from "@/lib/utils";
 import type { CleanupStatus } from "../types";
 
-const STATUS_CLASSES: Record<CleanupStatus, string> = {
-  "No need to update - Still valid":
-    "bg-green-100 text-green-800 border-green-200",
-  "URL Updated": "bg-blue-100 text-blue-800 border-blue-200",
-  Excluded: "bg-red-100 text-red-800 border-red-200",
-  "Format updated": "bg-orange-100 text-orange-800 border-orange-200",
-  "Moved to another brand": "bg-purple-100 text-purple-800 border-purple-200",
-  Pending: "bg-secondary text-secondary-foreground border-border",
-  Other: "text-foreground border-border",
+const STATUS_COLORS: Record<CleanupStatus, { bg: string; text: string }> = {
+  "No need to update - Still valid": { bg: '#E8F7EF', text: '#2D7A4F' },
+  "URL Updated":                     { bg: '#FFF0CC', text: '#A05C00' },
+  "Excluded":                        { bg: '#FDECEA', text: '#B83030' },
+  "Format updated":                  { bg: '#FFF0CC', text: '#A05C00' },
+  "Moved to another brand":          { bg: '#F0EAF8', text: '#5C3D8F' },
+  "Pending":                         { bg: '#F4F0ED', text: '#555555' },
+  "Other":                           { bg: '#F4F0ED', text: '#555555' },
 };
 
 const STATUS_LABELS: Record<CleanupStatus, string> = {
   "No need to update - Still valid": "Still valid",
-  "URL Updated": "URL Updated",
-  Excluded: "Excluded",
-  "Format updated": "Format updated",
-  "Moved to another brand": "Moved",
-  Pending: "Pending",
-  Other: "Other",
+  "URL Updated":                     "URL Updated",
+  "Excluded":                        "Excluded",
+  "Format updated":                  "Format updated",
+  "Moved to another brand":          "Moved",
+  "Pending":                         "Pending",
+  "Other":                           "Other",
 };
 
 interface StatusBadgeProps {
@@ -27,12 +25,21 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
+  const { bg, text } = STATUS_COLORS[status];
   return (
     <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-        STATUS_CLASSES[status],
-      )}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        backgroundColor: bg,
+        color: text,
+        fontFamily: 'Outfit, sans-serif',
+        fontWeight: 500,
+        fontSize: '11px',
+        borderRadius: '5px',
+        padding: '2px 8px',
+        whiteSpace: 'nowrap',
+      }}
     >
       {STATUS_LABELS[status]}
     </span>

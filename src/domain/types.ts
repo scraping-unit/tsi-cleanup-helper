@@ -48,6 +48,8 @@ export type OtherExistingBrandMatch = {
 	brandName?: string | undefined;
 };
 
+export type DeliverooPageState = "live_menu" | "not_found" | "closed" | "unknown";
+
 export type FailedMenuEvidence = {
 	checkState: "not_checked" | "checked";
 	currentUrl: UrlCheckEvidence;
@@ -57,6 +59,7 @@ export type FailedMenuEvidence = {
 	format?: FormatEvidence | undefined;
 	scrapeStillFailed?: boolean | undefined;
 	otherExistingBrandMatch?: OtherExistingBrandMatch | undefined;
+	deliverooVerified?: DeliverooPageState | undefined;
 };
 
 export type NormalizedFailedMenuRecord = {
@@ -88,6 +91,7 @@ export type ProcessedOutputRow = {
 	httpStatus?: number;
 	finalUrl?: string;
 	detectedPlatform?: MenuPlatform;
+	deliverooVerified?: DeliverooPageState;
 	contentType?: string;
 	contentSignal?: ContentSignal;
 	formatDetected?: string;

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { ArrowUp } from "lucide-react";
 
 interface UploadAreaProps {
   onFile: (file: File) => void;
@@ -30,7 +31,7 @@ export function UploadArea({ onFile }: UploadAreaProps) {
   }
 
   return (
-    <div className="min-h-[calc(100vh-49px)] flex items-center justify-center px-4">
+    <div className="flex-1 flex items-center justify-center px-4 py-16">
       <div
         role="button"
         tabIndex={0}
@@ -40,18 +41,49 @@ export function UploadArea({ onFile }: UploadAreaProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={[
-          "w-full max-w-sm rounded-lg px-10 py-16 text-center cursor-pointer",
-          "transition-colors select-none",
-          dragging
-            ? "border-2 border-solid border-foreground/40 bg-muted/50"
-            : "border-2 border-dashed border-border hover:border-foreground/30 hover:bg-muted/30",
-        ].join(" ")}
+        className="w-full max-w-md rounded-xl px-12 py-20 text-center cursor-pointer select-none flex flex-col items-center gap-5"
+        style={{
+          border: dragging
+            ? '2px dashed rgb(238 97 44 / 0.6)'
+            : '2px dashed rgb(238 97 44 / 0.2)',
+          backgroundColor: dragging ? 'rgb(255 244 223 / 0.8)' : 'transparent',
+          transition: 'border-color 150ms ease-out, background-color 150ms ease-out',
+        }}
       >
-        <p className="text-sm text-muted-foreground">
-          Drag a CSV file here, or{" "}
-          <span className="text-foreground font-medium">click to browse</span>
-        </p>
+        <ArrowUp
+          size={32}
+          style={{ color: '#EE612C' }}
+          strokeWidth={2}
+        />
+        <div className="flex flex-col gap-1">
+          <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '16px', fontWeight: 400, color: '#6B4230' }}>
+            Drop a CSV to begin
+          </p>
+          <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontWeight: 400, color: 'rgb(107 66 48 / 0.6)' }}>
+            or click to browse
+          </p>
+        </div>
+        <button
+          type="button"
+          tabIndex={-1}
+          style={{
+            backgroundColor: '#EE612C',
+            color: '#FFFFFF',
+            fontFamily: 'Outfit, sans-serif',
+            fontWeight: 500,
+            fontSize: '14px',
+            borderRadius: '6px',
+            height: '36px',
+            width: '120px',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'background-color 150ms ease-out',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#D4521E'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#EE612C'; }}
+        >
+          Browse files
+        </button>
       </div>
       <input
         ref={inputRef}
