@@ -218,22 +218,35 @@ async function solveCfAndGetSession(
 
 	let browser: Awaited<ReturnType<typeof patchright.chromium.launch>> | null = null;
 	try {
+		let headless = false;
 		try {
 			browser = await patchright.chromium.launch({
 				channel: "chrome",
-				headless: true,
+				headless: false,
 			});
-		} catch (error) {
+		} catch (headfulError) {
 			// TODO: remove after fallback is verified
 			console.log(
-				`[deliveroo-fallback] id=${menuId} solve return null reason=browser launch failed error=${formatError(error)}`,
+				`[deliveroo-fallback] id=${menuId} headless fallback attempted reason=${formatError(headfulError)}`,
 			);
-			return null;
+			headless = true;
+			try {
+				browser = await patchright.chromium.launch({
+					channel: "chrome",
+					headless: true,
+				});
+			} catch (headlessError) {
+				// TODO: remove after fallback is verified
+				console.log(
+					`[deliveroo-fallback] id=${menuId} solve return null reason=browser launch failed error=${formatError(headlessError)}`,
+				);
+				return null;
+			}
 		}
 
 		// TODO: remove after fallback is verified
 		console.log(
-			`[deliveroo-fallback] id=${menuId} solve target=${url} headless=true`,
+			`[deliveroo-fallback] id=${menuId} solve target=${url} headless=${headless}`,
 		);
 		const context = await browser.newContext();
 		const page = await context.newPage();

@@ -310,7 +310,7 @@ describe("checkDeliverooWithFallback", () => {
 			"[deliveroo-fallback] id=menu-1 starting CF solve",
 		);
 		expect(consoleLog).toHaveBeenCalledWith(
-			"[deliveroo-fallback] id=menu-1 solve target=https://deliveroo.co.uk/menu/london/test headless=true",
+			"[deliveroo-fallback] id=menu-1 solve target=https://deliveroo.co.uk/menu/london/test headless=false",
 		);
 		expect(consoleLog).toHaveBeenCalledWith(
 			"[deliveroo-fallback] id=menu-1 goto status=200",
