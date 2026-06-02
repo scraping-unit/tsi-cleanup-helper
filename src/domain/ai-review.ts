@@ -1,7 +1,10 @@
 import type { ProcessedOutputRow } from "./types.js";
+import type { BatchProcessResult, BatchRowSuccess } from "./batch-processor.js";
 
 const DEFAULT_MODEL = "gpt-5.5";
 const API_URL = "https://api.openai.com/v1/responses";
+const DEFAULT_AI_REVIEW_LIMIT = 10;
+const MAX_AI_REVIEW_LIMIT = 50;
 
 export const AI_RECOMMENDED_ACTIONS = [
 	"keep_url",
@@ -26,6 +29,16 @@ export type AiReviewResult = {
 	evidenceUrls: string[];
 };
 
+export type AiReviewRowSelection = {
+	limit?: unknown;
+	rowIndexes?: unknown;
+};
+
+export type SelectedAiReviewRow = {
+	index: number;
+	result: BatchRowSuccess;
+};
+
 type AiReviewOptions = {
 	apiKey: string;
 	model?: string;
@@ -40,6 +53,46 @@ export function shouldReviewRowWithAi(row: ProcessedOutputRow): boolean {
 			row.recommendedStatus === "Other" ||
 			row.recommendedStatus === "Pending")
 	);
+}
+
+export function selectRowsForAiReview(
+	result: BatchProcessResult,
+	selection: AiReviewRowSelection,
+): SelectedAiReviewRow[] {
+	if (Array.isArray(selection.rowIndexes)) {
+		const seen = new Set<number>();
+		const rows: SelectedAiReviewRow[] = [];
+		for (const value of selection.rowIndexes) {
+			if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+				continue;
+			}
+			if (seen.has(value)) continue;
+			seen.add(value);
+
+			const rowResult = result.results[value];
+			if (!rowResult?.ok || !shouldReviewRowWithAi(rowResult.row)) continue;
+			rows.push({ index: value, result: rowResult });
+		}
+		return rows;
+	}
+
+	const limit = normalizeAiReviewLimit(selection.limit);
+	return result.results
+		.map((rowResult, index) => ({ index, result: rowResult }))
+		.filter(
+			(
+				value,
+			): value is SelectedAiReviewRow =>
+				value.result.ok && shouldReviewRowWithAi(value.result.row),
+		)
+		.slice(0, limit);
+}
+
+function normalizeAiReviewLimit(value: unknown): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return DEFAULT_AI_REVIEW_LIMIT;
+	}
+	return Math.min(MAX_AI_REVIEW_LIMIT, Math.max(1, Math.floor(value)));
 }
 
 export async function reviewFailedMenuWithAi(

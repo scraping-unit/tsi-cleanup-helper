@@ -12,7 +12,7 @@ import type {
 import {
 	applyAiReviewResult,
 	reviewFailedMenuWithAi,
-	shouldReviewRowWithAi,
+	selectRowsForAiReview,
 } from "../src/domain/ai-review.js";
 import { checkUrl } from "../src/domain/url-checker.js";
 
@@ -34,8 +34,6 @@ try {
 const app = new Hono();
 const jobs = new Map<string, ProcessJob>();
 const MAX_COMPLETED_JOBS = 10;
-const DEFAULT_AI_REVIEW_LIMIT = 10;
-const MAX_AI_REVIEW_LIMIT = 50;
 
 type AiReviewProgress = {
 	status: "processing" | "complete" | "error";
@@ -144,16 +142,8 @@ app.post("/api/process/:jobId/ai-review", async (c) => {
 	const apiKey = nodeProcess?.env["OPENAI_API_KEY"]?.trim();
 	if (!apiKey) return c.json({ error: "missing_openai_api_key" }, 400);
 
-	const body: { limit?: unknown } = await c.req.json().catch(() => ({}));
-	const limit = normalizeAiReviewLimit(body.limit);
-	const rows = job.result.results
-		.filter(
-			(
-				result,
-			): result is Extract<BatchProcessResult["results"][number], { ok: true }> =>
-				result.ok && shouldReviewRowWithAi(result.row),
-		)
-		.slice(0, limit);
+	const body: { limit?: unknown; rowIndexes?: unknown } = await c.req.json().catch(() => ({}));
+	const rows = selectRowsForAiReview(job.result, body);
 
 	job.aiReview = {
 		status: rows.length === 0 ? "complete" : "processing",
@@ -196,13 +186,13 @@ function pruneCompletedJobs(): void {
 
 async function processAiReview(
 	job: ProcessJob,
-	rows: Array<Extract<BatchProcessResult["results"][number], { ok: true }>>,
+	rows: ReturnType<typeof selectRowsForAiReview>,
 	apiKey: string,
 ): Promise<void> {
 	const progress = job.aiReview;
 	if (!progress) return;
 
-	for (const result of rows) {
+	for (const { result } of rows) {
 		try {
 			const review = await reviewFailedMenuWithAi(result.row, {
 				apiKey,
@@ -225,13 +215,6 @@ async function processAiReview(
 	if (progress.status === "error") {
 		progress.error = "All AI reviews failed. Check API key, billing, and server logs.";
 	}
-}
-
-function normalizeAiReviewLimit(value: unknown): number {
-	if (typeof value !== "number" || !Number.isFinite(value)) {
-		return DEFAULT_AI_REVIEW_LIMIT;
-	}
-	return Math.min(MAX_AI_REVIEW_LIMIT, Math.max(1, Math.floor(value)));
 }
 
 serve({ fetch: app.fetch, port: 3000 }, (info) => {

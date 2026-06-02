@@ -20,6 +20,7 @@ export type UrlHealthIndicator = "accessible" | "dead" | "unverifiable";
 export type DisplayRow = ProcessedOutputRow & {
   _kind: "success" | "error";
   _error?: string;
+  sourceIndex: number;
   reviewerAction: ReviewerAction;
   urlHealth: UrlHealthIndicator;
 };
@@ -55,10 +56,7 @@ export function getUrlHealthIndicator(row: UrlHealthInput): UrlHealthIndicator {
     if (row.deliverooVerified === "live_menu") {
       return "accessible";
     }
-    if (
-      row.deliverooVerified === "not_found" ||
-      row.deliverooVerified === "closed"
-    ) {
+    if (row.deliverooVerified === "not_found") {
       return "dead";
     }
     return "unverifiable";
@@ -76,11 +74,12 @@ export function getUrlHealthIndicator(row: UrlHealthInput): UrlHealthIndicator {
 }
 
 export function toDisplayRows(results: BatchRowResult[]): DisplayRow[] {
-  return results.map((r): DisplayRow => {
+  return results.map((r, sourceIndex): DisplayRow => {
     if (r.ok) {
       return {
         ...r.row,
         _kind: "success",
+        sourceIndex,
         reviewerAction: getReviewerAction(r.row.recommendedStatus),
         urlHealth: getUrlHealthIndicator(r.row),
       };
@@ -89,6 +88,7 @@ export function toDisplayRows(results: BatchRowResult[]): DisplayRow[] {
     return {
       _kind: "error",
       _error: r.error,
+      sourceIndex,
       menuId: rec.menuId,
       brandId: rec.brandId,
       brandName: rec.brandName,
@@ -107,4 +107,15 @@ export function toDisplayRows(results: BatchRowResult[]): DisplayRow[] {
       urlHealth: "unverifiable",
     };
   });
+}
+
+export function shouldReviewDisplayRowWithAi(row: DisplayRow): boolean {
+  return (
+    row._kind === "success" &&
+    row.aiReviewStatus !== "reviewed" &&
+    (row.needsEscalation ||
+      row.currentUrlResult !== "valid" ||
+      row.recommendedStatus === "Other" ||
+      row.recommendedStatus === "Pending")
+  );
 }

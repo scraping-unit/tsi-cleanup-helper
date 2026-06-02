@@ -223,6 +223,30 @@ describe("processFailedMenuRecord", () => {
 		expect(row.recommendedStatus).toBe("No need to update - Still valid");
 	});
 
+	it("recommends Excluded when Deliveroo fallback confirms not_found", async () => {
+		mockCheckDeliverooWithFallback.mockResolvedValue({
+			pageState: "not_found",
+			tier: "browser",
+		});
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://deliveroo.co.uk/menu/london/test",
+		};
+
+		const row = await processFailedMenuRecord(
+			record,
+			makeChecker({ result: "not_verifiable", httpStatus: 403 }),
+		);
+
+		expect(row.deliverooVerified).toBe("not_found");
+		expect(row.recommendedStatus).toBe("Excluded");
+		expect(row.confidence).toBe("medium");
+		expect(row.needsEscalation).toBe(false);
+		expect(row.recommendationReason).toBe(
+			"deliveroo_browser_not_found_confirmed",
+		);
+	});
+
 	it("logs the Deliveroo fallback gate decision", async () => {
 		const record: NormalizedFailedMenuRecord = {
 			...baseRecord,
@@ -285,7 +309,7 @@ describe("processFailedMenuRecord", () => {
 		expect(row.needsEscalation).toBe(true);
 	});
 
-	it("recommends human-gated exclusion when JustEat fallback verifies a generic listing", async () => {
+	it("preserves JustEat not_found fallback evidence but keeps manual review", async () => {
 		mockCheckJustEatWithFallback.mockResolvedValue({
 			pageState: "not_found",
 			tier: "browser",
@@ -300,10 +324,12 @@ describe("processFailedMenuRecord", () => {
 			makeChecker({ result: "unknown", detectedPlatform: "JustEat" }),
 		);
 
-		expect(row.recommendedStatus).toBe("Excluded");
+		expect(row.recommendedStatus).toBe("Other");
 		expect(row.confidence).toBe("medium");
 		expect(row.needsEscalation).toBe(true);
-		expect(row.recommendationReason).toBe("justeat_verified_not_found");
+		expect(row.recommendationReason).toBe(
+			"justeat_browser_not_found_human_gated",
+		);
 	});
 
 	it("logs the JustEat fallback gate decision", async () => {

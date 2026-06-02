@@ -223,6 +223,25 @@ describe("recommendCleanupStatus", () => {
 		});
 	});
 
+	it("does not update from a candidate when protected-platform URL is only not_verifiable", () => {
+		expect(
+			recommendCleanupStatus({
+				checkState: "checked",
+				currentUrl: { result: "not_verifiable", httpStatus: 403 },
+				candidateUrl: {
+					url: "https://deliveroo.example/menu",
+					source: "Deliveroo",
+					result: "valid",
+				},
+			}),
+		).toMatchObject({
+			recommended_status: "Other",
+			confidence: "low",
+			recommendation_reason: "platform_automated_check_not_possible",
+			needs_escalation: true,
+		});
+	});
+
 	it("recommends no update when Deliveroo fallback verifies a live menu", () => {
 		expect(
 			recommendCleanupStatus({
@@ -238,7 +257,7 @@ describe("recommendCleanupStatus", () => {
 		});
 	});
 
-	it("recommends human-gated exclusion when Deliveroo fallback verifies not found", () => {
+	it("recommends Excluded when Deliveroo browser fallback confirms not_found", () => {
 		expect(
 			recommendCleanupStatus({
 				checkState: "checked",
@@ -248,14 +267,12 @@ describe("recommendCleanupStatus", () => {
 		).toEqual({
 			recommended_status: "Excluded",
 			confidence: "medium",
-			recommendation_reason: "deliveroo_verified_not_found",
-			needs_escalation: true,
-			escalation_reason:
-				"Deliveroo URL confirmed not found by browser — replacement or exclusion required; human confirmation needed.",
+			recommendation_reason: "deliveroo_browser_not_found_confirmed",
+			needs_escalation: false,
 		});
 	});
 
-	it("recommends human-gated exclusion when Deliveroo fallback verifies closed", () => {
+	it("keeps Deliveroo browser closed as human-gated manual review", () => {
 		expect(
 			recommendCleanupStatus({
 				checkState: "checked",
@@ -263,16 +280,16 @@ describe("recommendCleanupStatus", () => {
 				deliverooVerified: "closed",
 			}),
 		).toEqual({
-			recommended_status: "Excluded",
+			recommended_status: "Other",
 			confidence: "medium",
-			recommendation_reason: "deliveroo_verified_closed",
+			recommendation_reason: "deliveroo_browser_closed_human_gated",
 			needs_escalation: true,
 			escalation_reason:
-				"Deliveroo menu verified as closed by browser — exclude candidate pending human confirmation.",
+				"Deliveroo browser fallback indicated closed; v1 requires human confirmation before exclusion or replacement.",
 		});
 	});
 
-	it("recommends human-gated exclusion when JustEat fallback verifies a generic listing", () => {
+	it("keeps JustEat browser not_found as human-gated manual review", () => {
 		expect(
 			recommendCleanupStatus({
 				checkState: "checked",
@@ -280,12 +297,12 @@ describe("recommendCleanupStatus", () => {
 				justEatVerified: "not_found",
 			}),
 		).toEqual({
-			recommended_status: "Excluded",
+			recommended_status: "Other",
 			confidence: "medium",
-			recommendation_reason: "justeat_verified_not_found",
+			recommendation_reason: "justeat_browser_not_found_human_gated",
 			needs_escalation: true,
 			escalation_reason:
-				"JustEat URL resolved to a generic listing page — replacement or exclusion required; human confirmation needed.",
+				"JustEat browser fallback indicated not_found; v1 requires human confirmation before exclusion or replacement.",
 		});
 	});
 });

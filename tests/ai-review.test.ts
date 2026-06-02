@@ -5,9 +5,11 @@ import {
 	extractOutputText,
 	extractWebSearchSourceUrls,
 	reviewFailedMenuWithAi,
+	selectRowsForAiReview,
 	shouldReviewRowWithAi,
 } from "../src/domain/ai-review.js";
 import type { AiReviewResult } from "../src/domain/ai-review.js";
+import type { BatchProcessResult } from "../src/domain/batch-processor.js";
 import type { ProcessedOutputRow } from "../src/domain/types.js";
 
 const BASE_ROW: ProcessedOutputRow = {
@@ -103,6 +105,62 @@ describe("AI review row helpers", () => {
 		expect(shouldReviewRowWithAi({ ...BASE_ROW, aiReviewStatus: "reviewed" })).toBe(
 			false,
 		);
+	});
+
+	it("selects only requested eligible rows by original result index", () => {
+		const reviewedRow: ProcessedOutputRow = {
+			...BASE_ROW,
+			menuId: "menu-2",
+			aiReviewStatus: "reviewed",
+		};
+		const eligibleRow: ProcessedOutputRow = { ...BASE_ROW, menuId: "menu-3" };
+		const validRow: ProcessedOutputRow = {
+			...BASE_ROW,
+			menuId: "menu-4",
+			currentUrlResult: "valid",
+			recommendedStatus: "No need to update - Still valid",
+			needsEscalation: false,
+		};
+		const result: BatchProcessResult = {
+			results: [
+				{ ok: true, row: reviewedRow },
+				{ ok: true, row: eligibleRow },
+				{
+					ok: false,
+					index: 2,
+					record: {
+						brandId: "brand-1",
+						brandName: "Acme Pizza",
+						menuId: "menu-error",
+						menuUrl: "https://example.com/error",
+						scrapingStatus: "failed",
+						clusterId: "cluster-1",
+						templateName: "deliveroo",
+					},
+					error: "parse failed",
+				},
+				{ ok: true, row: validRow },
+			],
+			summary: {
+				total: 4,
+				processed: 3,
+				errors: 1,
+				byStatus: {
+					Pending: 0,
+					"URL Updated": 0,
+					"No need to update - Still valid": 1,
+					Excluded: 0,
+					"Format updated": 0,
+					"Moved to another brand": 0,
+					Other: 2,
+				},
+				byConfidence: { low: 3, medium: 0, high: 0 },
+			},
+		};
+
+		expect(selectRowsForAiReview(result, { rowIndexes: [1, 1, 2, 3, 99] })).toEqual([
+			{ index: 1, result: { ok: true, row: eligibleRow } },
+		]);
 	});
 
 	it("applies advisory output to the row", () => {

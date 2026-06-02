@@ -179,6 +179,31 @@ describe("exportBatchResultsToCsv", () => {
 		expect(rows[1]![18]).toBe("live_menu");
 	});
 
+	it("exports Deliveroo browser-confirmed not_found recommendation fields consistently", () => {
+		const row: ProcessedOutputRow = {
+			...BASE_ROW,
+			currentUrlResult: "not_verifiable",
+			httpStatus: 403,
+			deliverooVerified: "not_found",
+			menuContentDetected: false,
+			brandMatch: "unknown",
+			recommendedStatus: "Excluded",
+			confidence: "medium",
+			recommendationReason: "deliveroo_browser_not_found_confirmed",
+			needsEscalation: false,
+		};
+		const data = parseRows(exportBatchResultsToCsv([{ ok: true, row }]))[1]!;
+
+		expect(data[14]).toBe("not_verifiable");
+		expect(data[15]).toBe("403");
+		expect(data[18]).toBe("not_found");
+		expect(data[25]).toBe("Excluded");
+		expect(data[26]).toBe("medium");
+		expect(data[27]).toBe("deliveroo_browser_not_found_confirmed");
+		expect(data[30]).toBe("false");
+		expect(data[31]).toBe("");
+	});
+
 	it("menuContentDetected false serializes as 'false' not empty string", () => {
 		const row: ProcessedOutputRow = { ...BASE_ROW, menuContentDetected: false };
 		const results: BatchRowResult[] = [{ ok: true, row }];

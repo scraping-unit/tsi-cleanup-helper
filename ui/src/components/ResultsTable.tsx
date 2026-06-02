@@ -77,20 +77,23 @@ export function ResultsTable({ table }: ResultsTableProps) {
           rows.map((row, i) => (
             <TableRow
               key={row.id}
+              data-state={row.getIsSelected() ? "selected" : undefined}
               className="border-0"
               style={{
-                backgroundColor: row.original._kind === "error"
+                backgroundColor: row.getIsSelected()
+                  ? '#FFF4DF'
+                  : row.original._kind === "error"
                   ? '#FDECEA'
                   : i % 2 === 0 ? '#FFFFFF' : '#FFF9F0',
                 transition: 'background-color 0ms',
               }}
               onMouseEnter={(e) => {
-                if (row.original._kind !== "error") {
+                if (row.original._kind !== "error" && !row.getIsSelected()) {
                   (e.currentTarget as HTMLTableRowElement).style.backgroundColor = '#FFF4DF';
                 }
               }}
               onMouseLeave={(e) => {
-                if (row.original._kind !== "error") {
+                if (row.original._kind !== "error" && !row.getIsSelected()) {
                   (e.currentTarget as HTMLTableRowElement).style.backgroundColor = i % 2 === 0 ? '#FFFFFF' : '#FFF9F0';
                 }
               }}

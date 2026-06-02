@@ -36,11 +36,11 @@ export function recommendCleanupStatus(
 
 	if (evidence.justEatVerified === "not_found") {
 		return recommendation(
-			"Excluded",
+			"Other",
 			"medium",
-			"justeat_verified_not_found",
+			"justeat_browser_not_found_human_gated",
 			true,
-			"JustEat URL resolved to a generic listing page — replacement or exclusion required; human confirmation needed.",
+			"JustEat browser fallback indicated not_found; v1 requires human confirmation before exclusion or replacement.",
 		);
 	}
 
@@ -104,18 +104,17 @@ export function recommendCleanupStatus(
 			return recommendation(
 				"Excluded",
 				"medium",
-				"deliveroo_verified_not_found",
-				true,
-				"Deliveroo URL confirmed not found by browser — replacement or exclusion required; human confirmation needed.",
+				"deliveroo_browser_not_found_confirmed",
+				false,
 			);
 		}
 		if (verified === "closed") {
 			return recommendation(
-				"Excluded",
+				"Other",
 				"medium",
-				"deliveroo_verified_closed",
+				"deliveroo_browser_closed_human_gated",
 				true,
-				"Deliveroo menu verified as closed by browser — exclude candidate pending human confirmation.",
+				"Deliveroo browser fallback indicated closed; v1 requires human confirmation before exclusion or replacement.",
 			);
 		}
 

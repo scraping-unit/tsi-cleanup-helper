@@ -106,10 +106,6 @@ describe("reviewer action display rows", () => {
       currentUrlResult: "not_verifiable",
       deliverooVerified: "not_found",
     })).toBe("dead");
-    expect(getUrlHealthIndicator({
-      currentUrlResult: "not_verifiable",
-      deliverooVerified: "closed",
-    })).toBe("dead");
   });
 
   it("maps unverifiable URL states to the yellow health indicator", () => {
@@ -120,6 +116,10 @@ describe("reviewer action display rows", () => {
     expect(getUrlHealthIndicator({
       currentUrlResult: "not_verifiable",
       deliverooVerified: "unknown",
+    })).toBe("unverifiable");
+    expect(getUrlHealthIndicator({
+      currentUrlResult: "not_verifiable",
+      deliverooVerified: "closed",
     })).toBe("unverifiable");
   });
 

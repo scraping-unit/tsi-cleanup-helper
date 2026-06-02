@@ -6,6 +6,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnFiltersState,
+  type RowSelectionState,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
@@ -40,6 +41,21 @@ const URL_HEALTH_STYLES: Record<DisplayRow["urlHealth"], { color: string; label:
 };
 
 const COLUMNS = [
+  col.display({
+    id: "select",
+    enableSorting: false,
+    header: ({ table }) => <HeaderSelectCheckbox table={table} />,
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        checked={row.getIsSelected()}
+        disabled={!row.getCanSelect()}
+        onChange={row.getToggleSelectedHandler()}
+        aria-label={`Select row ${row.original.menuId}`}
+        style={selectionCheckboxStyle}
+      />
+    ),
+  }),
   col.accessor("currentMenuUrl", {
     header: "URL",
     enableSorting: false,
@@ -342,6 +358,7 @@ interface ResultsViewProps {
   importErrors: CsvRowError[];
   aiReview?: AiReviewProgress;
   onAiReview: (limit: number) => void;
+  onAiReviewSelected: (rowIndexes: number[]) => void;
   onReset: () => void;
 }
 
@@ -351,6 +368,7 @@ export function ResultsView({
   importErrors,
   aiReview,
   onAiReview,
+  onAiReviewSelected,
   onReset,
 }: ResultsViewProps) {
   const displayRows = useMemo(() => toDisplayRows(result.results), [result]);
@@ -367,15 +385,19 @@ export function ResultsView({
   const [columnVisibility, setColumnVisibility] =
     useState<VisibilityState>(DEFAULT_HIDDEN);
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const table = useReactTable({
     data: displayRows,
     columns: COLUMNS,
-    state: { columnFilters, globalFilter, columnVisibility, sorting },
+    state: { columnFilters, globalFilter, columnVisibility, sorting, rowSelection },
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
     onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
+    getRowId: (row) => String(row.sourceIndex),
+    enableRowSelection: (row) => row.original._kind === "success",
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -403,11 +425,47 @@ export function ResultsView({
         csvHref={csvHref}
         aiReview={aiReview}
         onAiReview={onAiReview}
+        onAiReviewSelected={onAiReviewSelected}
         onReset={onReset}
       />
       <div className="flex-1 overflow-hidden">
         <ResultsTable table={table} />
       </div>
     </div>
+  );
+}
+
+const selectionCheckboxStyle: React.CSSProperties = {
+  width: '14px',
+  height: '14px',
+  accentColor: '#EE612C',
+  cursor: 'pointer',
+};
+
+function HeaderSelectCheckbox({ table }: { table: ReturnType<typeof useReactTable<DisplayRow>> }) {
+  const selectableRows = table
+    .getFilteredRowModel()
+    .rows
+    .filter((row) => row.getCanSelect());
+  const selectedCount = selectableRows.filter((row) => row.getIsSelected()).length;
+  const checked = selectableRows.length > 0 && selectedCount === selectableRows.length;
+  const indeterminate = selectedCount > 0 && selectedCount < selectableRows.length;
+
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      disabled={selectableRows.length === 0}
+      ref={(node) => {
+        if (node) node.indeterminate = indeterminate;
+      }}
+      onChange={(event) => {
+        for (const row of selectableRows) {
+          row.toggleSelected(event.currentTarget.checked);
+        }
+      }}
+      aria-label="Select all visible rows"
+      style={selectionCheckboxStyle}
+    />
   );
 }

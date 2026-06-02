@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CONFIDENCE_VALUES, type AiReviewProgress } from "../types";
-import { REVIEWER_ACTIONS } from "../lib/toDisplayRows";
+import { REVIEWER_ACTIONS, shouldReviewDisplayRowWithAi } from "../lib/toDisplayRows";
 import type { DisplayRow } from "../lib/toDisplayRows";
 
 const URL_RESULT_VALUES = [
@@ -95,6 +95,7 @@ interface TableToolbarProps {
   csvHref: string | null;
   aiReview?: AiReviewProgress;
   onAiReview: (limit: number) => void;
+  onAiReviewSelected: (rowIndexes: number[]) => void;
   onReset: () => void;
 }
 
@@ -116,6 +117,7 @@ export function TableToolbar({
   csvHref,
   aiReview,
   onAiReview,
+  onAiReviewSelected,
   onReset,
 }: TableToolbarProps) {
   const [aiLimit, setAiLimit] = useState("10");
@@ -146,6 +148,13 @@ export function TableToolbar({
   const toggleableColumns = HIDDEN_TOGGLEABLE_COLUMNS.map((id) =>
     table.getColumn(id),
   ).filter(Boolean);
+  const selectedEligibleRows = table
+    .getSelectedRowModel()
+    .rows
+    .map((row) => row.original)
+    .filter(shouldReviewDisplayRowWithAi);
+  const selectedEligibleCount = selectedEligibleRows.length;
+  const aiReviewProcessing = aiReview?.status === "processing";
 
   return (
     <div
@@ -289,7 +298,29 @@ export function TableToolbar({
         </Select>
         <button
           type="button"
-          disabled={aiReview?.status === "processing"}
+          disabled={aiReviewProcessing || selectedEligibleCount === 0}
+          onClick={() => onAiReviewSelected(selectedEligibleRows.map((row) => row.sourceIndex))}
+          title="Use paid OpenAI web search on selected unresolved rows"
+          className="inline-flex items-center gap-2"
+          style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '13px',
+            color: '#6B4230',
+            background: 'transparent',
+            border: '1px solid rgb(238 97 44 / 0.2)',
+            borderRadius: '6px',
+            height: '34px',
+            padding: '0 12px',
+            cursor: aiReviewProcessing ? 'wait' : selectedEligibleCount === 0 ? 'not-allowed' : 'pointer',
+            opacity: selectedEligibleCount === 0 ? 0.55 : 1,
+          }}
+        >
+          <Sparkles size={15} />
+          {`AI review selected (${selectedEligibleCount})`}
+        </button>
+        <button
+          type="button"
+          disabled={aiReviewProcessing}
           onClick={() => onAiReview(Number(aiLimit))}
           title="Use paid OpenAI web search on unresolved rows"
           className="inline-flex items-center gap-2"
@@ -302,7 +333,7 @@ export function TableToolbar({
             borderRadius: '6px',
             height: '34px',
             padding: '0 12px',
-            cursor: aiReview?.status === "processing" ? 'wait' : 'pointer',
+            cursor: aiReviewProcessing ? 'wait' : 'pointer',
           }}
         >
           <Sparkles size={15} />

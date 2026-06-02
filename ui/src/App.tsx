@@ -64,6 +64,14 @@ export default function App() {
   }
 
   async function handleAiReview(limit: number) {
+    await runAiReview({ limit });
+  }
+
+  async function handleAiReviewSelected(rowIndexes: number[]) {
+    await runAiReview({ rowIndexes });
+  }
+
+  async function runAiReview(payload: { limit: number } | { rowIndexes: number[] }) {
     const savedJob = loadSavedJob();
     if (!savedJob || state.phase !== "results") return;
 
@@ -71,7 +79,7 @@ export default function App() {
       const response = await fetch(`/api/process/${encodeURIComponent(savedJob.jobId)}/ai-review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ limit }),
+        body: JSON.stringify(payload),
       });
       const data = (await response.json().catch(() => ({ error: `HTTP ${response.status}` }))) as
         | { status: AiReviewProgress["status"]; progress: AiReviewProgress }
@@ -106,6 +114,7 @@ export default function App() {
             importErrors={state.importErrors}
             aiReview={state.aiReview}
             onAiReview={handleAiReview}
+            onAiReviewSelected={handleAiReviewSelected}
             onReset={handleReset}
           />
         )}
