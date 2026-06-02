@@ -1,6 +1,7 @@
 import type {
 	DeliverooPageState,
 	FailedMenuEvidence,
+	JustEatPageState,
 	NormalizedFailedMenuRecord,
 	ProcessedOutputRow,
 	UrlCheckEvidence,
@@ -22,7 +23,7 @@ export async function processFailedMenuRecord(
 		urlEvidence.detectedPlatform ?? detectMenuPlatformFromUrl(record.menuUrl);
 	const gatePlatform = platform.toLowerCase();
 	const willFire =
-		urlEvidence.result === "not_verifiable" &&
+		(urlEvidence.result === "not_verifiable" || urlEvidence.result === "unknown") &&
 		(gatePlatform === "deliveroo" || gatePlatform === "justeat");
 
 	console.log(
@@ -31,6 +32,7 @@ export async function processFailedMenuRecord(
 	);
 
 	let deliverooVerified: DeliverooPageState | undefined;
+	let justEatVerified: JustEatPageState | undefined;
 	if (willFire) {
 		if (gatePlatform === "deliveroo") {
 			const fallback = await checkDeliverooWithFallback(
@@ -42,7 +44,13 @@ export async function processFailedMenuRecord(
 				fallback.pageState !== "unknown" ? fallback.pageState : undefined;
 		}
 		if (gatePlatform === "justeat") {
-			await checkJustEatWithFallback(record.menuUrl, undefined, record.menuId);
+			const fallback = await checkJustEatWithFallback(
+				record.menuUrl,
+				undefined,
+				record.menuId,
+			);
+			justEatVerified =
+				fallback.pageState !== "unknown" ? fallback.pageState : undefined;
 		}
 	}
 
@@ -51,6 +59,7 @@ export async function processFailedMenuRecord(
 		currentUrl: urlEvidence,
 		scrapeStillFailed: true,
 		...(deliverooVerified ? { deliverooVerified } : {}),
+		...(justEatVerified ? { justEatVerified } : {}),
 	};
 
 	const recommendation = recommendCleanupStatus(evidence);
@@ -63,6 +72,13 @@ export async function processFailedMenuRecord(
 		templateName: record.templateName,
 		currentMenuUrl: record.menuUrl,
 		scrapingStatus: record.scrapingStatus,
+		...(record.menuLink !== undefined ? { menuLink: record.menuLink } : {}),
+		...(record.brandGatewayTaskLink !== undefined ? { brandGatewayTaskLink: record.brandGatewayTaskLink } : {}),
+		...(record.menuDefinitionTaskLink !== undefined ? { menuDefinitionTaskLink: record.menuDefinitionTaskLink } : {}),
+		...(record.scraper !== undefined ? { scraper: record.scraper } : {}),
+		...(record.status !== undefined ? { status: record.status } : {}),
+		...(record.comment !== undefined ? { comment: record.comment } : {}),
+		...(record.menuFormat !== undefined ? { menuFormat: record.menuFormat } : {}),
 		currentUrlResult: urlEvidence.result,
 		...(urlEvidence.httpStatus !== undefined ? { httpStatus: urlEvidence.httpStatus } : {}),
 		...(urlEvidence.finalUrl !== undefined ? { finalUrl: urlEvidence.finalUrl } : {}),

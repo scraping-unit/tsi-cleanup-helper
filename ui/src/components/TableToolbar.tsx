@@ -1,4 +1,6 @@
 import type { Table } from "@tanstack/react-table";
+import { useState } from "react";
+import { Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -13,7 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CONFIDENCE_VALUES } from "../types";
+import { CONFIDENCE_VALUES, type AiReviewProgress } from "../types";
 import { REVIEWER_ACTIONS } from "../lib/toDisplayRows";
 import type { DisplayRow } from "../lib/toDisplayRows";
 
@@ -46,6 +48,14 @@ const COLUMN_LABELS: Record<string, string> = {
   recommendedStatus: "Cleanup Status",
   recommendationReason: "Reason",
   candidateNewUrl: "New URL",
+  aiConfidence: "AI Confidence",
+  aiConfidencePercentage: "AI Confidence %",
+  aiUrlStillAccessible: "AI URL Accessible",
+  aiMenuStillAvailable: "AI Menu Available",
+  aiReason: "AI Reason",
+  aiTargetClusterHint: "AI Cluster Hint",
+  aiEvidenceUrls: "AI Evidence URLs",
+  aiError: "AI Error",
 };
 
 const HIDDEN_TOGGLEABLE_COLUMNS = [
@@ -55,6 +65,14 @@ const HIDDEN_TOGGLEABLE_COLUMNS = [
   "recommendedStatus",
   "recommendationReason",
   "candidateNewUrl",
+  "aiConfidence",
+  "aiConfidencePercentage",
+  "aiUrlStillAccessible",
+  "aiMenuStillAvailable",
+  "aiReason",
+  "aiTargetClusterHint",
+  "aiEvidenceUrls",
+  "aiError",
   "brandId",
   "clusterId",
   "templateName",
@@ -75,6 +93,8 @@ interface TableToolbarProps {
   globalFilter: string;
   onGlobalFilterChange: (v: string) => void;
   csvHref: string | null;
+  aiReview?: AiReviewProgress;
+  onAiReview: (limit: number) => void;
   onReset: () => void;
 }
 
@@ -94,8 +114,11 @@ export function TableToolbar({
   globalFilter,
   onGlobalFilterChange,
   csvHref,
+  aiReview,
+  onAiReview,
   onReset,
 }: TableToolbarProps) {
+  const [aiLimit, setAiLimit] = useState("10");
   const actionCol = table.getColumn("reviewerAction");
   const confidenceCol = table.getColumn("confidence");
   const urlResultCol = table.getColumn("currentUrlResult");
@@ -254,6 +277,47 @@ export function TableToolbar({
       )}
 
       <div className="ml-auto flex items-center gap-2">
+        <Select value={aiLimit} onValueChange={setAiLimit}>
+          <SelectTrigger className="w-20" style={{ height: '34px', ...selectTextStyle }}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {["1", "5", "10", "25", "50"].map((limit) => (
+              <SelectItem key={limit} value={limit} style={selectTextStyle}>{limit}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <button
+          type="button"
+          disabled={aiReview?.status === "processing"}
+          onClick={() => onAiReview(Number(aiLimit))}
+          title="Use paid OpenAI web search on unresolved rows"
+          className="inline-flex items-center gap-2"
+          style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '13px',
+            color: '#6B4230',
+            background: 'transparent',
+            border: '1px solid rgb(238 97 44 / 0.2)',
+            borderRadius: '6px',
+            height: '34px',
+            padding: '0 12px',
+            cursor: aiReview?.status === "processing" ? 'wait' : 'pointer',
+          }}
+        >
+          <Sparkles size={15} />
+          {aiReview?.status === "processing"
+            ? `AI ${aiReview.completed}/${aiReview.total}`
+            : aiReview?.status === "error"
+              ? "Retry AI failed"
+            : "AI review unresolved"}
+        </button>
+        {aiReview?.status === "complete" && (
+          <span style={selectTextStyle}>AI updated {aiReview.updated}</span>
+        )}
+        {aiReview?.status === "error" && (
+          <span style={{ ...selectTextStyle, color: '#B83030' }} title={aiReview.error}>AI failed</span>
+        )}
         <button
           onClick={onReset}
           style={{

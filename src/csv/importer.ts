@@ -1,5 +1,5 @@
 import type { CsvRequiredColumn } from "./input-schema.js";
-import { normalizeFailedMenuCsvRow, validateCsvHeaders } from "./input-schema.js";
+import { normalizeCsvHeader, normalizeFailedMenuCsvRow, validateCsvHeaders } from "./input-schema.js";
 import type { CsvInputRow } from "./input-schema.js";
 import { parseCsvString } from "./parser.js";
 import type { NormalizedFailedMenuRecord } from "../domain/types.js";
@@ -44,8 +44,11 @@ export function importCsvString(csv: string): CsvImportResult {
 
 		const row: CsvInputRow = {};
 		for (let j = 0; j < parsed.headers.length; j++) {
-			const header = parsed.headers[j]!;
-			row[header] = values[j] ?? "";
+			const header = normalizeCsvHeader(parsed.headers[j]!);
+			const value = values[j] ?? "";
+
+			if (row[header]?.trim() && !value.trim()) continue;
+			row[header] = value;
 		}
 
 		try {

@@ -17,6 +17,24 @@ describe("checkContentSignal", () => {
 		expect(checkContentSignal("CLOSED ON UBER EATS", "UberEats")).toBe("closed");
 	});
 
+	it("returns closed for UberEats title containing the generic dead-page marker", () => {
+		expect(
+			checkContentSignal(
+				"<html><head><title>Nothing to eat here</title></head></html>",
+				"UberEats",
+			),
+		).toBe("closed");
+	});
+
+	it("ignores closure markers inside scripts and styles", () => {
+		expect(
+			checkContentSignal(
+				"<body><script>Closed on Uber Eats</script><style>.x { content: 'Closed on Uber Eats' }</style><main>Menu</main></body>",
+				"UberEats",
+			),
+		).toBe("unknown");
+	});
+
 	it("returns unknown for UberEats body without closure text", () => {
 		expect(
 			checkContentSignal("<html>Welcome to Some Restaurant</html>", "UberEats"),

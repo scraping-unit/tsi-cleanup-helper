@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	checkJustEatWithFallback,
+	classifyJustEatPage,
 	resetJustEatSessionForTesting,
 } from "../src/domain/justeat-fallback.js";
 
@@ -190,5 +191,29 @@ describe("checkJustEatWithFallback", () => {
 		);
 
 		expect(result).toEqual({ pageState: "unknown", tier: "none" });
+	});
+});
+
+describe("classifyJustEatPage", () => {
+	it("generic local listing title is not_found", () => {
+		expect(
+			classifyJustEatPage({
+				finalUrl: "https://www.just-eat.co.uk/restaurants-manchester",
+				title: "Restaurants and takeaways in Manchester",
+				bodyText: "",
+				html: "",
+			}),
+		).toBe("not_found");
+	});
+
+	it("restaurant menu title remains unknown", () => {
+		expect(
+			classifyJustEatPage({
+				finalUrl: "https://www.just-eat.co.uk/restaurants-test/menu",
+				title: "Test Restaurant - Just Eat",
+				bodyText: "Menu",
+				html: "",
+			}),
+		).toBe("unknown");
 	});
 });

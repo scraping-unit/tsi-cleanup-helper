@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	CSV_OPTIONAL_COLUMNS,
 	CSV_REQUIRED_COLUMNS,
+	normalizeCsvHeader,
 	normalizeFailedMenuCsvRow,
 	validateCsvHeaders,
 } from "../src/csv/input-schema.js";
@@ -52,6 +53,26 @@ describe("CSV input schema", () => {
 			...CSV_REQUIRED_COLUMNS,
 			"comment",
 			"unknown_extra_column",
+		]);
+
+		expect(result).toEqual({ ok: true, missingColumns: [] });
+	});
+
+	it("normalizes Google Sheets-style headers and known aliases", () => {
+		expect(normalizeCsvHeader("Brand Gateway Task Link")).toBe("brand_gateway_task_link");
+		expect(normalizeCsvHeader("Menu Scraping Status")).toBe("scraping_status");
+		expect(normalizeCsvHeader("Definer")).toBe("scraper");
+	});
+
+	it("accepts the real sheet header style", () => {
+		const result = validateCsvHeaders([
+			"Brand Id",
+			"Brand Name",
+			"Menu Id",
+			"Menu Url",
+			"Menu Scraping Status",
+			"cluster_id",
+			"template_name",
 		]);
 
 		expect(result).toEqual({ ok: true, missingColumns: [] });

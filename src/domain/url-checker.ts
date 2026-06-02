@@ -6,6 +6,7 @@ import type { MenuPlatform } from "./platform-detection.js";
 import type { UrlCheckEvidence } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_MAX_RETRIES = 1;
 
 const ENHANCED_CHECK_PLATFORMS = new Set<MenuPlatform>(["Deliveroo", "JustEat"]);
 
@@ -28,6 +29,7 @@ const CONTENT_DETECTABLE_PLATFORMS = new Set<MenuPlatform>(["UberEats"]);
 export async function checkUrl(
 	url: string,
 	timeoutMs = DEFAULT_TIMEOUT_MS,
+	maxRetries = DEFAULT_MAX_RETRIES,
 ): Promise<UrlCheckEvidence> {
 	if (!url || !url.trim()) {
 		return { result: "invalid" };
@@ -46,6 +48,20 @@ export async function checkUrl(
 
 	const normalizedInputUrl = parsedUrl.href;
 
+	for (let attempt = 0; ; attempt++) {
+		const evidence = await checkNormalizedUrl(normalizedInputUrl, timeoutMs);
+		if (!shouldRetry(evidence) || attempt >= maxRetries) return evidence;
+
+		console.log(
+			`[url-checker] retry=${attempt + 1}/${maxRetries} url=${normalizedInputUrl} result=${evidence.result}`,
+		);
+	}
+}
+
+async function checkNormalizedUrl(
+	normalizedInputUrl: string,
+	timeoutMs: number,
+): Promise<UrlCheckEvidence> {
 	if (ENHANCED_CHECK_PLATFORMS.has(detectMenuPlatformFromUrl(normalizedInputUrl))) {
 		return checkUrlWithImpit(normalizedInputUrl, timeoutMs);
 	}
@@ -72,6 +88,13 @@ export async function checkUrl(
 	if (headOutcome.type === "abort") return { result: "unknown" };
 	if (headOutcome.type === "network") return { result: "inaccessible" };
 	return { result: "unknown" };
+}
+
+function shouldRetry(evidence: UrlCheckEvidence): boolean {
+	return (
+		evidence.result === "unknown" ||
+		(evidence.result === "inaccessible" && evidence.httpStatus === undefined)
+	);
 }
 
 type FetchOutcome =
@@ -153,6 +176,9 @@ async function maybeEnrichWithContentSignal(
 	url: string,
 	timeoutMs: number,
 ): Promise<UrlCheckEvidence> {
+	if (evidence.result !== "valid" && evidence.result !== "redirected") {
+		return evidence;
+	}
 	if (!evidence.detectedPlatform || !CONTENT_DETECTABLE_PLATFORMS.has(evidence.detectedPlatform)) {
 		return evidence;
 	}
@@ -175,6 +201,16 @@ function buildEvidence(
 	const rawContentType = response.headers.get("content-type");
 	const contentType = rawContentType !== null ? rawContentType : undefined;
 
+	if (isUberBotChallengeRedirect(normalizedInputUrl, finalUrl)) {
+		return {
+			result: "not_verifiable",
+			httpStatus: response.status,
+			finalUrl,
+			detectedPlatform: "UberEats",
+			contentType,
+		};
+	}
+
 	return {
 		result: isRedirected ? "redirected" : "valid",
 		httpStatus: response.status,
@@ -182,6 +218,20 @@ function buildEvidence(
 		detectedPlatform,
 		contentType,
 	};
+}
+
+function isUberBotChallengeRedirect(inputUrl: string, finalUrl: string): boolean {
+	if (detectMenuPlatformFromUrl(inputUrl) !== "UberEats") return false;
+
+	try {
+		const parsedFinalUrl = new URL(finalUrl);
+		return (
+			parsedFinalUrl.hostname === "def.uber.com" &&
+			parsedFinalUrl.pathname.toLowerCase().includes("/challenge")
+		);
+	} catch {
+		return false;
+	}
 }
 
 function isAbortError(error: unknown): boolean {

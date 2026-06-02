@@ -174,6 +174,12 @@ describe("classifyDeliverooPage", () => {
 		);
 	});
 
+	it("generic delivery-area title is not_found", () => {
+		expect(
+			classifyDeliverooPage(snap({ title: "Takeaway delivery in Manchester" })),
+		).toBe("not_found");
+	});
+
 	it("bodyText with £9.99 is live_menu", () => {
 		expect(classifyDeliverooPage(snap({ bodyText: "Burger £9.99" }))).toBe(
 			"live_menu",

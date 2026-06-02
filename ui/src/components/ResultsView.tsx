@@ -10,7 +10,7 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import { ChevronRight } from "lucide-react";
-import type { BatchProcessResult, CsvRowError } from "../types";
+import type { AiReviewProgress, BatchProcessResult, CsvRowError } from "../types";
 import { toDisplayRows, type DisplayRow } from "../lib/toDisplayRows";
 import { StatusBadge } from "./StatusBadge";
 import { ConfidenceBadge } from "./ConfidenceBadge";
@@ -185,6 +185,64 @@ const COLUMNS = [
       );
     },
   }),
+  col.accessor("aiRecommendedAction", {
+    header: "AI Action",
+    enableSorting: true,
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  col.accessor("aiConfidence", {
+    header: "AI Confidence",
+    enableSorting: true,
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  col.accessor("aiConfidencePercentage", {
+    header: "AI Confidence %",
+    enableSorting: true,
+    cell: (info) => info.getValue() === undefined ? "—" : `${info.getValue()}%`,
+  }),
+  col.accessor("aiUrlStillAccessible", {
+    header: "AI URL Accessible",
+    enableSorting: true,
+    cell: (info) => info.getValue() === undefined ? "—" : String(info.getValue()),
+  }),
+  col.accessor("aiMenuStillAvailable", {
+    header: "AI Menu Available",
+    enableSorting: true,
+    cell: (info) => info.getValue() === undefined ? "—" : String(info.getValue()),
+  }),
+  col.accessor("aiCandidateUrl", {
+    header: "AI Candidate URL",
+    enableSorting: false,
+    cell: (info) => {
+      const val = info.getValue();
+      if (!val) return "—";
+      return (
+        <a href={val} target="_blank" rel="noreferrer" style={{ ...urlCellStyle, color: '#EE612C' }} title={val}>
+          {val}
+        </a>
+      );
+    },
+  }),
+  col.accessor("aiReason", {
+    header: "AI Reason",
+    enableSorting: false,
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  col.accessor("aiTargetClusterHint", {
+    header: "AI Cluster Hint",
+    enableSorting: false,
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  col.accessor("aiEvidenceUrls", {
+    header: "AI Evidence URLs",
+    enableSorting: false,
+    cell: (info) => info.getValue()?.join(" | ") ?? "—",
+  }),
+  col.accessor("aiError", {
+    header: "AI Error",
+    enableSorting: false,
+    cell: (info) => info.getValue() ?? "—",
+  }),
   col.accessor("detectedPlatform", {
     header: "Platform",
     enableSorting: true,
@@ -254,6 +312,13 @@ const DEFAULT_HIDDEN: VisibilityState = {
   recommendedStatus: false,
   recommendationReason: false,
   candidateNewUrl: false,
+  aiConfidence: false,
+  aiUrlStillAccessible: false,
+  aiMenuStillAvailable: false,
+  aiReason: false,
+  aiTargetClusterHint: false,
+  aiEvidenceUrls: false,
+  aiError: false,
   detectedPlatform: false,
   deliverooVerified: false,
   brandId: false,
@@ -275,6 +340,8 @@ interface ResultsViewProps {
   result: BatchProcessResult;
   csv: string;
   importErrors: CsvRowError[];
+  aiReview?: AiReviewProgress;
+  onAiReview: (limit: number) => void;
   onReset: () => void;
 }
 
@@ -282,6 +349,8 @@ export function ResultsView({
   result,
   csv,
   importErrors,
+  aiReview,
+  onAiReview,
   onReset,
 }: ResultsViewProps) {
   const displayRows = useMemo(() => toDisplayRows(result.results), [result]);
@@ -332,6 +401,8 @@ export function ResultsView({
         globalFilter={globalFilter}
         onGlobalFilterChange={setGlobalFilter}
         csvHref={csvHref}
+        aiReview={aiReview}
+        onAiReview={onAiReview}
         onReset={onReset}
       />
       <div className="flex-1 overflow-hidden">

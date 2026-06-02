@@ -1,6 +1,7 @@
 import { Impit } from "impit";
+import { extractHtmlTitle, extractVisibleText } from "./content-checker.js";
+import type { JustEatPageState } from "./types.js";
 
-type JustEatPageState = "unknown";
 type FallbackTier = "browser" | "cookie" | "none";
 
 type CfSession = {
@@ -19,7 +20,7 @@ type CookieCheckResult = {
 	httpStatus: number;
 };
 
-type JustEatSnapshot = {
+export type JustEatSnapshot = {
 	finalUrl: string;
 	title: string;
 	bodyText: string;
@@ -45,7 +46,7 @@ export async function checkJustEatWithFallback(
 		if (result !== null && !BLOCKED_STATUSES.has(result.httpStatus)) {
 			const snapshot = snapshotFromHtml(result.finalUrl, result.body);
 			logJustEatSnapshot(menuId, snapshot);
-			return logFallbackResult(menuId, "unknown", "cookie");
+			return logFallbackResult(menuId, classifyJustEatPage(snapshot), "cookie");
 		}
 		cfSession = null;
 	}
@@ -82,14 +83,14 @@ export async function checkJustEatWithFallback(
 	}
 
 	if (!alreadyInFlight) {
-		return logFallbackResult(menuId, "unknown", "browser");
+		return logFallbackResult(menuId, solveResult.pageState, "browser");
 	}
 
 	const result = await checkWithCookie(url, solveResult.session, timeoutMs);
 	if (result !== null && !BLOCKED_STATUSES.has(result.httpStatus)) {
 		const snapshot = snapshotFromHtml(result.finalUrl, result.body);
 		logJustEatSnapshot(menuId, snapshot);
-		return logFallbackResult(menuId, "unknown", "cookie");
+		return logFallbackResult(menuId, classifyJustEatPage(snapshot), "cookie");
 	}
 
 	return logFallbackResult(menuId, "unknown", "none");
@@ -116,32 +117,20 @@ async function solveCfAndGetSession(
 
 	let browser: Awaited<ReturnType<typeof patchright.chromium.launch>> | null = null;
 	try {
-		let headless = false;
 		try {
 			browser = await patchright.chromium.launch({
 				channel: "chrome",
-				headless: false,
+				headless: true,
 			});
-		} catch (headfulError) {
+		} catch (error) {
 			console.log(
-				`[justeat-fallback] id=${menuId} headless fallback attempted reason=${formatError(headfulError)}`,
+				`[justeat-fallback] id=${menuId} solve return null reason=browser launch failed error=${formatError(error)}`,
 			);
-			headless = true;
-			try {
-				browser = await patchright.chromium.launch({
-					channel: "chrome",
-					headless: true,
-				});
-			} catch (headlessError) {
-				console.log(
-					`[justeat-fallback] id=${menuId} solve return null reason=browser launch failed error=${formatError(headlessError)}`,
-				);
-				return null;
-			}
+			return null;
 		}
 
 		console.log(
-			`[justeat-fallback] id=${menuId} solve target=${url} headless=${headless}`,
+			`[justeat-fallback] id=${menuId} solve target=${url} headless=true`,
 		);
 		const context = await browser.newContext();
 		const page = await context.newPage();
@@ -208,10 +197,11 @@ async function solveCfAndGetSession(
 			return null;
 		}
 
-		logJustEatSnapshot(menuId, { finalUrl, title, bodyText, html });
+		const snapshot = { finalUrl, title, bodyText, html };
+		logJustEatSnapshot(menuId, snapshot);
 		return {
 			session: { cookie: cfCookie.value, userAgent },
-			pageState: "unknown",
+			pageState: classifyJustEatPage(snapshot),
 		};
 	} catch (error) {
 		console.log(
@@ -295,23 +285,18 @@ async function checkWithCookie(
 }
 
 function snapshotFromHtml(finalUrl: string, html: string): JustEatSnapshot {
-	const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? "";
-	const bodyHtml = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? html;
 	return {
 		finalUrl,
-		title,
-		bodyText: buildBodyText(bodyHtml),
+		title: extractHtmlTitle(html),
+		bodyText: extractVisibleText(html),
 		html,
 	};
 }
 
-function buildBodyText(html: string): string {
-	return html
-		.replace(/<script[\s\S]*?<\/script>/gi, "")
-		.replace(/<style[\s\S]*?<\/style>/gi, "")
-		.replace(/<[^>]+>/g, " ")
-		.replace(/\s+/g, " ")
-		.trim();
+export function classifyJustEatPage(snapshot: JustEatSnapshot): JustEatPageState {
+	return /restaurants and takeaways in/i.test(snapshot.title)
+		? "not_found"
+		: "unknown";
 }
 
 function logJustEatSnapshot(menuId: string, snapshot: JustEatSnapshot): void {

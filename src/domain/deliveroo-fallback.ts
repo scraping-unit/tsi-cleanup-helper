@@ -1,4 +1,5 @@
 import { Impit } from "impit";
+import { extractVisibleText } from "./content-checker.js";
 import type { DeliverooPageState } from "./types.js";
 
 type CfSession = {
@@ -35,12 +36,7 @@ const NAVIGATION_TIMEOUT_MS = 45_000;
 const CF_POLL_INTERVAL_MS = 500;
 
 export function buildBodyText(html: string): string {
-	return html
-		.replace(/<script[\s\S]*?<\/script>/gi, "")
-		.replace(/<style[\s\S]*?<\/style>/gi, "")
-		.replace(/<[^>]+>/g, " ")
-		.replace(/\s+/g, " ")
-		.trim();
+	return extractVisibleText(html);
 }
 
 export function classifyDeliverooPage(
@@ -63,7 +59,7 @@ export function classifyDeliverooPage(
 	}
 
 	// SIGNAL 2 — title
-	if (/page not found/i.test(snapshot.title)) {
+	if (/page not found|takeaway delivery in/i.test(snapshot.title)) {
 		// TODO: remove after fallback is verified
 		console.log(
 			`[deliveroo-fallback] id=${menuId} classifier=title title=${snapshot.title}`,

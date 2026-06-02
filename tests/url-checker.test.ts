@@ -178,6 +178,28 @@ describe("checkUrl", () => {
 		});
 	});
 
+	it("retries a transient unknown result once", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockRejectedValueOnce(new Error("Unexpected"))
+			.mockResolvedValueOnce(
+				makeFakeResponse({
+					status: 200,
+					url: "https://example.com/menu",
+					contentType: "text/html",
+				}),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+
+		expect(await checkUrl("https://example.com/menu")).toEqual({
+			result: "valid",
+			httpStatus: 200,
+			detectedPlatform: "OwnWebsite",
+			contentType: "text/html",
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
 	it("does not call GET when HEAD succeeds", async () => {
 		const fetchMock = vi.fn().mockResolvedValue(
 			makeFakeResponse({
@@ -289,6 +311,14 @@ describe("checkUrl", () => {
 					Object.assign(new Error("The operation was aborted"), {
 						name: "AbortError",
 					}),
+				)
+				.mockResolvedValueOnce(
+					makeFakeResponse({ status: 405, url: "https://example.com/menu" }),
+				)
+				.mockRejectedValueOnce(
+					Object.assign(new Error("The operation was aborted"), {
+						name: "AbortError",
+					}),
 				),
 		);
 
@@ -301,6 +331,10 @@ describe("checkUrl", () => {
 		vi.stubGlobal(
 			"fetch",
 			vi.fn()
+				.mockResolvedValueOnce(
+					makeFakeResponse({ status: 405, url: "https://example.com/menu" }),
+				)
+				.mockRejectedValueOnce(new TypeError("Failed to fetch"))
 				.mockResolvedValueOnce(
 					makeFakeResponse({ status: 405, url: "https://example.com/menu" }),
 				)
@@ -434,6 +468,28 @@ describe("checkUrl", () => {
 		const result = await checkUrl(ubereatsUrl);
 		expect(result.result).toBe("blocked");
 		expect(result.contentSignal).toBeUndefined();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("UberEats bot challenge redirect returns not_verifiable without content fetch", async () => {
+		const ubereatsUrl = "https://www.ubereats.com/gb/store/cafe-mocha/abc";
+		const challengeUrl = "https://def.uber.com/en/GB/challenge?from_service=web-eats";
+		const fetchMock = vi.fn().mockResolvedValue(
+			makeFakeResponse({
+				status: 200,
+				url: challengeUrl,
+				contentType: "text/html; charset=utf-8",
+			}),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		expect(await checkUrl(ubereatsUrl)).toEqual({
+			result: "not_verifiable",
+			httpStatus: 200,
+			finalUrl: challengeUrl,
+			detectedPlatform: "UberEats",
+			contentType: "text/html; charset=utf-8",
+		});
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 

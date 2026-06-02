@@ -36,6 +36,21 @@ export type BatchProcessResult = {
 	summary: BatchSummary;
 };
 
+export type BatchProgress = {
+	completed: number;
+	total: number;
+	processed: number;
+	errors: number;
+	currentMenuId?: string;
+};
+
+export type BatchProcessorOptions = {
+	concurrency?: number;
+	onProgress?: (progress: BatchProgress) => void | Promise<void>;
+};
+
+const DEFAULT_CONCURRENCY = 4;
+
 function emptyByStatus(): Record<CleanupStatus, number> {
 	return Object.fromEntries(CLEANUP_STATUSES.map((s) => [s, 0])) as Record<
 		CleanupStatus,
@@ -53,31 +68,56 @@ function emptyByConfidence(): Record<Confidence, number> {
 export async function processBatch(
 	records: NormalizedFailedMenuRecord[],
 	urlChecker: UrlCheckerFn,
+	options: BatchProcessorOptions = {},
 ): Promise<BatchProcessResult> {
-	const results: BatchRowResult[] = [];
+	const results = new Array<BatchRowResult>(records.length);
 	const byStatus = emptyByStatus();
 	const byConfidence = emptyByConfidence();
+	const concurrency = normalizeConcurrency(options.concurrency);
+	let nextIndex = 0;
+	let completed = 0;
 	let processed = 0;
 	let errors = 0;
 
-	for (let i = 0; i < records.length; i++) {
-		const record = records[i]!;
-		try {
-			const row = await processFailedMenuRecord(record, urlChecker);
-			results.push({ ok: true, row });
-			byStatus[row.recommendedStatus]++;
-			byConfidence[row.confidence]++;
-			processed++;
-		} catch (err) {
-			results.push({
-				ok: false,
-				index: i,
-				record,
-				error: err instanceof Error ? err.message : String(err),
+	async function processNextRecord(): Promise<void> {
+		while (true) {
+			const i = nextIndex++;
+			if (i >= records.length) return;
+
+			const record = records[i]!;
+			try {
+				const row = await processFailedMenuRecord(record, urlChecker);
+				results[i] = { ok: true, row };
+				byStatus[row.recommendedStatus]++;
+				byConfidence[row.confidence]++;
+				processed++;
+			} catch (err) {
+				results[i] = {
+					ok: false,
+					index: i,
+					record,
+					error: err instanceof Error ? err.message : String(err),
+				};
+				errors++;
+			}
+
+			completed++;
+			await options.onProgress?.({
+				completed,
+				total: records.length,
+				processed,
+				errors,
+				currentMenuId: record.menuId,
 			});
-			errors++;
 		}
 	}
+
+	await Promise.all(
+		Array.from(
+			{ length: Math.min(concurrency, records.length) },
+			() => processNextRecord(),
+		),
+	);
 
 	return {
 		results,
@@ -89,4 +129,11 @@ export async function processBatch(
 			byConfidence,
 		},
 	};
+}
+
+function normalizeConcurrency(concurrency: number | undefined): number {
+	if (concurrency === undefined || !Number.isFinite(concurrency)) {
+		return DEFAULT_CONCURRENCY;
+	}
+	return Math.max(1, Math.floor(concurrency));
 }

@@ -1,5 +1,6 @@
 import type { MenuPlatform } from "./platform-detection.js";
 import type { CleanupStatus } from "./statuses.js";
+import type { AiRecommendedAction } from "./ai-review.js";
 
 export const CONFIDENCE_VALUES = ["low", "medium", "high"] as const;
 
@@ -49,6 +50,7 @@ export type OtherExistingBrandMatch = {
 };
 
 export type DeliverooPageState = "live_menu" | "not_found" | "closed" | "unknown";
+export type JustEatPageState = "not_found" | "unknown";
 
 export type FailedMenuEvidence = {
 	checkState: "not_checked" | "checked";
@@ -60,6 +62,7 @@ export type FailedMenuEvidence = {
 	scrapeStillFailed?: boolean | undefined;
 	otherExistingBrandMatch?: OtherExistingBrandMatch | undefined;
 	deliverooVerified?: DeliverooPageState | undefined;
+	justEatVerified?: JustEatPageState | undefined;
 };
 
 export type NormalizedFailedMenuRecord = {
@@ -87,6 +90,13 @@ export type ProcessedOutputRow = {
 	templateName: string;
 	currentMenuUrl: string;
 	scrapingStatus: string;
+	menuLink?: string;
+	brandGatewayTaskLink?: string;
+	menuDefinitionTaskLink?: string;
+	scraper?: string;
+	status?: string;
+	comment?: string;
+	menuFormat?: string;
 	currentUrlResult: CurrentUrlResult;
 	httpStatus?: number;
 	finalUrl?: string;
@@ -106,4 +116,15 @@ export type ProcessedOutputRow = {
 	humanComment?: string;
 	needsEscalation: boolean;
 	escalationReason?: string;
+	aiReviewStatus?: "reviewed" | "error";
+	aiRecommendedAction?: AiRecommendedAction;
+	aiConfidence?: Confidence;
+	aiConfidencePercentage?: number;
+	aiUrlStillAccessible?: boolean | null;
+	aiMenuStillAvailable?: boolean | null;
+	aiReason?: string;
+	aiCandidateUrl?: string;
+	aiTargetClusterHint?: string;
+	aiEvidenceUrls?: string[];
+	aiError?: string;
 };
