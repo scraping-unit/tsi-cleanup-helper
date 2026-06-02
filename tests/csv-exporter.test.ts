@@ -44,7 +44,7 @@ const BASE_ROW: ProcessedOutputRow = {
 	needsEscalation: false,
 };
 
-const HEADER_COUNT = 33;
+const HEADER_COUNT = 44;
 
 function parseRows(csv: string): string[][] {
 	return csv.split("\r\n").map((line) => line.split(","));
@@ -99,7 +99,8 @@ describe("exportBatchResultsToCsv", () => {
 		expect(headers[18]).toBe("deliveroo_verified");
 		expect(headers[25]).toBe("recommended_status");
 		expect(headers[30]).toBe("needs_escalation");
-		expect(headers[32]).toBe("processing_error");
+		expect(headers[32]).toBe("ai_review_status");
+		expect(headers[43]).toBe("processing_error");
 	});
 
 	it("success row has same column count as header row", () => {
@@ -122,7 +123,7 @@ describe("exportBatchResultsToCsv", () => {
 		expect(data[6]).toBe("failed"); // scraping_status
 	});
 
-	it("success row optional input columns are empty string", () => {
+	it("success row undefined optional input columns are empty string", () => {
 		const results: BatchRowResult[] = [{ ok: true, row: BASE_ROW }];
 		const rows = parseRows(exportBatchResultsToCsv(results));
 		const data = rows[1]!;
@@ -130,6 +131,30 @@ describe("exportBatchResultsToCsv", () => {
 		for (let i = 7; i <= 13; i++) {
 			expect(data[i]).toBe("");
 		}
+	});
+
+	it("success row populates optional input fields when present", () => {
+		const row: ProcessedOutputRow = {
+			...BASE_ROW,
+			menuLink: "https://link.example",
+			brandGatewayTaskLink: "https://gw.example",
+			menuDefinitionTaskLink: "https://definition.example",
+			scraper: "scraper-a",
+			status: "needs-review",
+			comment: "needs check",
+			menuFormat: "html",
+		};
+		const rows = parseRows(exportBatchResultsToCsv([{ ok: true, row }]));
+		const data = rows[1]!;
+		expect(data.slice(7, 14)).toEqual([
+			"https://link.example",
+			"https://gw.example",
+			"https://definition.example",
+			"scraper-a",
+			"needs-review",
+			"needs check",
+			"html",
+		]);
 	});
 
 	it("success row serializes computed URL evidence fields", () => {
@@ -167,6 +192,36 @@ describe("exportBatchResultsToCsv", () => {
 		const rows = parseRows(exportBatchResultsToCsv(results));
 		expect(rows[1]![30]).toBe("true"); // needs_escalation
 		expect(rows[1]![31]).toBe("Reason"); // escalation_reason
+	});
+
+	it("serializes optional AI review evidence", () => {
+		const row: ProcessedOutputRow = {
+			...BASE_ROW,
+			aiReviewStatus: "reviewed",
+			aiRecommendedAction: "update_url",
+			aiConfidence: "medium",
+			aiConfidencePercentage: 72,
+			aiUrlStillAccessible: false,
+			aiMenuStillAvailable: true,
+			aiReason: "Replacement found",
+			aiCandidateUrl: "https://example.com/new",
+			aiTargetClusterHint: "cluster-2",
+			aiEvidenceUrls: ["https://example.com/a", "https://example.com/b"],
+		};
+		const data = parseRows(exportBatchResultsToCsv([{ ok: true, row }]))[1]!;
+		expect(data.slice(32, 43)).toEqual([
+			"reviewed",
+			"update_url",
+			"medium",
+			"72",
+			"false",
+			"true",
+			"Replacement found",
+			"https://example.com/new",
+			"cluster-2",
+			"https://example.com/a | https://example.com/b",
+			"",
+		]);
 	});
 
 	it("brandMatch 'unknown' serializes as 'unknown'", () => {
@@ -227,7 +282,7 @@ describe("exportBatchResultsToCsv", () => {
 		expect(data[26]).toBe("low"); // confidence
 		expect(data[27]).toBe("Processing error"); // recommendation_reason
 		expect(data[30]).toBe("false"); // needs_escalation
-		expect(data[32]).toBe("Something went wrong"); // processing_error
+		expect(data[43]).toBe("Something went wrong"); // processing_error
 	});
 
 	it("error row populates identity fields from record", () => {
@@ -282,7 +337,7 @@ describe("exportBatchResultsToCsv", () => {
 	it("success row processing_error column is empty", () => {
 		const results: BatchRowResult[] = [{ ok: true, row: BASE_ROW }];
 		const rows = parseRows(exportBatchResultsToCsv(results));
-		expect(rows[1]![32]).toBe(""); // processing_error
+		expect(rows[1]![43]).toBe(""); // processing_error
 	});
 
 	it("value containing comma in recommendation_reason is quoted", () => {

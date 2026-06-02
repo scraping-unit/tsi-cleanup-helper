@@ -32,10 +32,25 @@ export type CsvHeaderValidationResult = {
 	missingColumns: CsvRequiredColumn[];
 };
 
+const CSV_HEADER_ALIASES: Record<string, CsvInputColumn> = {
+	menu_scraping_status: "scraping_status",
+	definer: "scraper",
+};
+
+export function normalizeCsvHeader(header: string): string {
+	const normalized = header
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_")
+		.replace(/^_+|_+$/g, "");
+
+	return CSV_HEADER_ALIASES[normalized] ?? normalized;
+}
+
 export function validateCsvHeaders(
 	headers: readonly string[],
 ): CsvHeaderValidationResult {
-	const headerSet = new Set(headers);
+	const headerSet = new Set(headers.map(normalizeCsvHeader));
 	const missingColumns = CSV_REQUIRED_COLUMNS.filter(
 		(column) => !headerSet.has(column),
 	);

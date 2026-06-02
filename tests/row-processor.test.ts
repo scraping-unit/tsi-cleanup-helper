@@ -53,7 +53,16 @@ describe("processFailedMenuRecord", () => {
 
 	it("copies all record fields to output row", async () => {
 		const checker = makeChecker({ result: "inaccessible", httpStatus: 404 });
-		const row = await processFailedMenuRecord(baseRecord, checker);
+		const row = await processFailedMenuRecord({
+			...baseRecord,
+			menuLink: "https://link.example",
+			brandGatewayTaskLink: "https://gateway.example",
+			menuDefinitionTaskLink: "https://definition.example",
+			scraper: "scraper-a",
+			status: "needs-review",
+			comment: "needs check",
+			menuFormat: "html",
+		}, checker);
 
 		expect(row.menuId).toBe("menu-1");
 		expect(row.brandId).toBe("brand-1");
@@ -62,6 +71,13 @@ describe("processFailedMenuRecord", () => {
 		expect(row.templateName).toBe("template-1");
 		expect(row.currentMenuUrl).toBe("https://example.com/menu");
 		expect(row.scrapingStatus).toBe("FAILED");
+		expect(row.menuLink).toBe("https://link.example");
+		expect(row.brandGatewayTaskLink).toBe("https://gateway.example");
+		expect(row.menuDefinitionTaskLink).toBe("https://definition.example");
+		expect(row.scraper).toBe("scraper-a");
+		expect(row.status).toBe("needs-review");
+		expect(row.comment).toBe("needs check");
+		expect(row.menuFormat).toBe("html");
 	});
 
 	it("calls urlChecker with the record menu URL", async () => {
@@ -188,6 +204,25 @@ describe("processFailedMenuRecord", () => {
 		expect(row.recommendedStatus).toBe("No need to update - Still valid");
 	});
 
+	it("runs Deliveroo fallback for unknown Deliveroo URLs", async () => {
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://deliveroo.co.uk/menu/london/test",
+		};
+		const row = await processFailedMenuRecord(
+			record,
+			makeChecker({ result: "unknown" }),
+		);
+
+		expect(mockCheckDeliverooWithFallback).toHaveBeenCalledWith(
+			record.menuUrl,
+			undefined,
+			record.menuId,
+		);
+		expect(row.deliverooVerified).toBe("live_menu");
+		expect(row.recommendedStatus).toBe("No need to update - Still valid");
+	});
+
 	it("logs the Deliveroo fallback gate decision", async () => {
 		const record: NormalizedFailedMenuRecord = {
 			...baseRecord,
@@ -229,6 +264,46 @@ describe("processFailedMenuRecord", () => {
 		expect(row.confidence).toBe("low");
 		expect(row.needsEscalation).toBe(true);
 		expect(row.recommendationReason).toBe("platform_automated_check_not_possible");
+	});
+
+	it("runs JustEat fallback for unknown JustEat URLs and keeps manual review", async () => {
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://www.just-eat.co.uk/restaurants/test",
+		};
+		const row = await processFailedMenuRecord(
+			record,
+			makeChecker({ result: "unknown" }),
+		);
+
+		expect(mockCheckJustEatWithFallback).toHaveBeenCalledWith(
+			record.menuUrl,
+			undefined,
+			record.menuId,
+		);
+		expect(row.recommendedStatus).toBe("Other");
+		expect(row.needsEscalation).toBe(true);
+	});
+
+	it("recommends human-gated exclusion when JustEat fallback verifies a generic listing", async () => {
+		mockCheckJustEatWithFallback.mockResolvedValue({
+			pageState: "not_found",
+			tier: "browser",
+		});
+		const record: NormalizedFailedMenuRecord = {
+			...baseRecord,
+			menuUrl: "https://www.just-eat.co.uk/restaurants-test/menu",
+		};
+
+		const row = await processFailedMenuRecord(
+			record,
+			makeChecker({ result: "unknown", detectedPlatform: "JustEat" }),
+		);
+
+		expect(row.recommendedStatus).toBe("Excluded");
+		expect(row.confidence).toBe("medium");
+		expect(row.needsEscalation).toBe(true);
+		expect(row.recommendationReason).toBe("justeat_verified_not_found");
 	});
 
 	it("logs the JustEat fallback gate decision", async () => {

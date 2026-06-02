@@ -8,8 +8,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 const UI_PORT = 5187;
 const UI_URL = `http://127.0.0.1:${UI_PORT}/`;
 const CSV_TEXT =
-	"menu_id,brand_id,brand_name,cluster_id,template_name,menu_url,scraping_status,menu_link,brand_gateway_task_link,menu_definition_task_link,scraper,status,comment,menu_format,current_url_result,http_status,final_url,detected_platform,deliveroo_verified,content_type,format_detected,menu_content_detected,brand_match,candidate_new_url,candidate_source,recommended_status,confidence,recommendation_reason,human_final_status,human_comment,needs_escalation,escalation_reason,processing_error\r\n" +
-	"202,101,Acme,cluster-1,justeat,https://www.just-eat.co.uk/restaurants-acme/menu,failed,,,,,,,justeat,not_verifiable,403,,justeat,,,,false,unknown,,,Pending,low,Current URL could not be verified,,,true,Manual review required,";
+	"menu_id,brand_id,brand_name,cluster_id,template_name,menu_url,scraping_status,menu_link,brand_gateway_task_link,menu_definition_task_link,scraper,status,comment,menu_format,current_url_result,http_status,final_url,detected_platform,deliveroo_verified,content_type,format_detected,menu_content_detected,brand_match,candidate_new_url,candidate_source,recommended_status,confidence,recommendation_reason,human_final_status,human_comment,needs_escalation,escalation_reason,ai_review_status,ai_recommended_action,ai_confidence,ai_confidence_percentage,ai_url_still_accessible,ai_menu_still_available,ai_reason,ai_candidate_url,ai_target_cluster_hint,ai_evidence_urls,ai_error,processing_error\r\n" +
+	"202,101,Acme,cluster-1,justeat,https://www.just-eat.co.uk/restaurants-acme/menu,failed,,,,,,,justeat,not_verifiable,403,,justeat,,,,false,unknown,,,Pending,low,Current URL could not be verified,,,true,Manual review required,,,,,,,,,,,,";
 
 describe("CSV download", () => {
 	let vite: ChildProcessWithoutNullStreams;
@@ -40,11 +40,18 @@ describe("CSV download", () => {
 
 	it("keeps the generated CSV blob URL valid in React StrictMode", async () => {
 		const page = await browser.newPage({ acceptDownloads: true });
-		await page.route("**/api/process", async (route) => {
+		await page.route("**/api/process**", async (route) => {
+			const isCreateRequest =
+				route.request().method() === "POST" &&
+				new URL(route.request().url()).pathname === "/api/process";
 			await route.fulfill({
-				status: 200,
+				status: isCreateRequest ? 202 : 200,
 				contentType: "application/json",
-				body: JSON.stringify(buildJustEatApiResponse()),
+				body: JSON.stringify(
+					isCreateRequest
+						? { jobId: "job-1" }
+						: { status: "complete", data: buildJustEatApiResponse() },
+				),
 			});
 		});
 
@@ -58,6 +65,7 @@ describe("CSV download", () => {
 			),
 		});
 		await page.getByText("Download CSV").waitFor();
+		await page.getByText("AI review unresolved").waitFor();
 
 		const href = await page
 			.locator('a[download="tsi-cleanup-export.csv"]')
@@ -78,6 +86,9 @@ describe("CSV download", () => {
 		]);
 		expect(await download.failure()).toBeNull();
 		expect(download.suggestedFilename()).toBe("tsi-cleanup-export.csv");
+
+		await page.reload();
+		await page.getByText("Download CSV").waitFor();
 
 		await page.close();
 	}, 20_000);

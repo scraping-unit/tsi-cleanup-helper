@@ -4,3 +4,4 @@ node_modules/
 ~/.codex/
 CLAUDE.md
 AGENTS.md
+.env

@@ -271,4 +271,21 @@ describe("recommendCleanupStatus", () => {
 				"Deliveroo menu verified as closed by browser — exclude candidate pending human confirmation.",
 		});
 	});
+
+	it("recommends human-gated exclusion when JustEat fallback verifies a generic listing", () => {
+		expect(
+			recommendCleanupStatus({
+				checkState: "checked",
+				currentUrl: { result: "unknown" },
+				justEatVerified: "not_found",
+			}),
+		).toEqual({
+			recommended_status: "Excluded",
+			confidence: "medium",
+			recommendation_reason: "justeat_verified_not_found",
+			needs_escalation: true,
+			escalation_reason:
+				"JustEat URL resolved to a generic listing page — replacement or exclusion required; human confirmation needed.",
+		});
+	});
 });

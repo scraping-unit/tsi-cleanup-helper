@@ -95,6 +95,30 @@ describe("importCsvString", () => {
 		});
 	});
 
+	it("imports real sheet headers and keeps the non-empty scraping status alias", () => {
+		const csv =
+			"Brand Id,Brand Name,Brand Gateway Task Link,Menu Id,Menu Link,Menu Url,Menu Scraping Status,scraping_status,cluster_id,template_name,Definer,Status,Comment\n" +
+			"101,Acme,https://gateway.example,202,https://link.example,https://example.com/menu,WEBSITE_NOT_FOUND,,cluster-1,deliveroo,scraper-a,Pending,needs check\n";
+		const result = importCsvString(csv);
+
+		expect(result.errors).toEqual([]);
+		expect(result.missingRequiredColumns).toEqual([]);
+		expect(result.records[0]).toMatchObject({
+			brandId: "101",
+			brandName: "Acme",
+			menuId: "202",
+			menuUrl: "https://example.com/menu",
+			scrapingStatus: "WEBSITE_NOT_FOUND",
+			clusterId: "cluster-1",
+			templateName: "deliveroo",
+			menuLink: "https://link.example",
+			brandGatewayTaskLink: "https://gateway.example",
+			scraper: "scraper-a",
+			status: "Pending",
+			comment: "needs check",
+		});
+	});
+
 	it("optional columns absent → undefined in record", () => {
 		const csv = `${REQUIRED_HEADERS}\n${VALID_ROW}\n`;
 		const result = importCsvString(csv);

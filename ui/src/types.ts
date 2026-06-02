@@ -41,6 +41,14 @@ export type BrandMatch = boolean | "unknown";
 
 export type DeliverooPageState = "live_menu" | "not_found" | "closed" | "unknown";
 
+export type AiRecommendedAction =
+  | "keep_url"
+  | "update_url"
+  | "rerun_scrape"
+  | "move_cluster"
+  | "exclude"
+  | "manual_review";
+
 export type NormalizedFailedMenuRecord = {
   brandId: string;
   brandName: string;
@@ -66,6 +74,13 @@ export type ProcessedOutputRow = {
   templateName: string;
   currentMenuUrl: string;
   scrapingStatus: string;
+  menuLink?: string;
+  brandGatewayTaskLink?: string;
+  menuDefinitionTaskLink?: string;
+  scraper?: string;
+  status?: string;
+  comment?: string;
+  menuFormat?: string;
   currentUrlResult: CurrentUrlResult;
   httpStatus?: number;
   finalUrl?: string;
@@ -85,6 +100,17 @@ export type ProcessedOutputRow = {
   humanComment?: string;
   needsEscalation: boolean;
   escalationReason?: string;
+  aiReviewStatus?: "reviewed" | "error";
+  aiRecommendedAction?: AiRecommendedAction;
+  aiConfidence?: Confidence;
+  aiConfidencePercentage?: number;
+  aiUrlStillAccessible?: boolean | null;
+  aiMenuStillAvailable?: boolean | null;
+  aiReason?: string;
+  aiCandidateUrl?: string;
+  aiTargetClusterHint?: string;
+  aiEvidenceUrls?: string[];
+  aiError?: string;
 };
 
 export type BatchRowSuccess = { ok: true; row: ProcessedOutputRow };
@@ -117,6 +143,31 @@ export type ApiResponse = {
   result: BatchProcessResult;
   csv: string;
   importErrors: CsvRowError[];
+  aiReview?: AiReviewProgress;
 };
+
+export type AiReviewProgress = {
+  status: "processing" | "complete" | "error";
+  completed: number;
+  total: number;
+  updated: number;
+  errors: number;
+  error?: string;
+};
+
+export type ProcessProgress = {
+  completed: number;
+  total: number;
+  processed: number;
+  errors: number;
+  currentMenuId?: string;
+};
+
+export type ProcessJobCreatedResponse = { jobId: string };
+
+export type ProcessJobSnapshot =
+  | { status: "processing"; progress: ProcessProgress }
+  | { status: "complete"; data: ApiResponse }
+  | { status: "error"; error: string };
 
 export type ApiErrorResponse = { error: string; details?: unknown };

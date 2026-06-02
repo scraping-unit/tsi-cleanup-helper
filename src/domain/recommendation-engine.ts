@@ -34,6 +34,16 @@ export function recommendCleanupStatus(
 		return recommendation("Excluded", "high", "platform_confirmed_closed", false);
 	}
 
+	if (evidence.justEatVerified === "not_found") {
+		return recommendation(
+			"Excluded",
+			"medium",
+			"justeat_verified_not_found",
+			true,
+			"JustEat URL resolved to a generic listing page — replacement or exclusion required; human confirmation needed.",
+		);
+	}
+
 	if (evidence.currentUrl.result === "valid") {
 		if (hasConfirmedMatchingMenu(evidence)) {
 			if (evidence.format?.mismatch === true) {
@@ -76,7 +86,10 @@ export function recommendCleanupStatus(
 		);
 	}
 
-	if (evidence.currentUrl.result === "not_verifiable") {
+	if (
+		evidence.currentUrl.result === "not_verifiable" ||
+		(evidence.currentUrl.result === "unknown" && evidence.deliverooVerified)
+	) {
 		const verified = evidence.deliverooVerified;
 
 		if (verified === "live_menu") {

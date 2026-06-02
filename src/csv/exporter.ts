@@ -39,7 +39,19 @@ const EXPORT_HEADERS = [
 	"human_comment",
 	"needs_escalation",
 	"escalation_reason",
-	// Group 7: Processing error
+	// Group 7: Optional AI review
+	"ai_review_status",
+	"ai_recommended_action",
+	"ai_confidence",
+	"ai_confidence_percentage",
+	"ai_url_still_accessible",
+	"ai_menu_still_available",
+	"ai_reason",
+	"ai_candidate_url",
+	"ai_target_cluster_hint",
+	"ai_evidence_urls",
+	"ai_error",
+	// Group 8: Processing error
 	"processing_error",
 ] as const;
 
@@ -71,16 +83,13 @@ export function exportBatchResultsToCsv(results: BatchRowResult[]): string {
 					row.currentMenuUrl,
 					row.scrapingStatus,
 					// Group 2: Optional input passthrough
-					// TODO: These are empty for success rows because ProcessedOutputRow does not
-					// carry optional input fields forward. Fix: add passthroughFields to
-					// ProcessedOutputRow in types.ts and populate it in row-processor.ts.
-					"",
-					"",
-					"",
-					"",
-					"",
-					"",
-					"",
+					row.menuLink ?? "",
+					row.brandGatewayTaskLink ?? "",
+					row.menuDefinitionTaskLink ?? "",
+					row.scraper ?? "",
+					row.status ?? "",
+					row.comment ?? "",
+					row.menuFormat ?? "",
 					// Group 3: URL check evidence
 					row.currentUrlResult,
 					row.httpStatus?.toString() ?? "",
@@ -103,7 +112,19 @@ export function exportBatchResultsToCsv(results: BatchRowResult[]): string {
 					row.humanComment ?? "",
 					String(row.needsEscalation),
 					row.escalationReason ?? "",
-					// Group 7: Processing error
+					// Group 7: Optional AI review
+					row.aiReviewStatus ?? "",
+					row.aiRecommendedAction ?? "",
+					row.aiConfidence ?? "",
+					row.aiConfidencePercentage?.toString() ?? "",
+					row.aiUrlStillAccessible === undefined ? "" : String(row.aiUrlStillAccessible),
+					row.aiMenuStillAvailable === undefined ? "" : String(row.aiMenuStillAvailable),
+					row.aiReason ?? "",
+					row.aiCandidateUrl ?? "",
+					row.aiTargetClusterHint ?? "",
+					row.aiEvidenceUrls?.join(" | ") ?? "",
+					row.aiError ?? "",
+					// Group 8: Processing error
 					"",
 				]),
 			);
@@ -149,7 +170,19 @@ export function exportBatchResultsToCsv(results: BatchRowResult[]): string {
 					"",
 					"false",
 					"",
-					// Group 7: Processing error
+					// Group 7: Optional AI review
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					// Group 8: Processing error
 					result.error,
 				]),
 			);

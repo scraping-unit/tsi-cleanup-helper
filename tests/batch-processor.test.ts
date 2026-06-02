@@ -159,4 +159,59 @@ describe("processBatch", () => {
 		expect(result.summary.byConfidence["medium"]).toBe(0);
 		expect(result.summary.byConfidence["high"]).toBe(0);
 	});
+
+	it("limits concurrent URL checks and preserves input result order", async () => {
+		const records = Array.from({ length: 6 }, (_, index) =>
+			makeRecord({ menuId: `menu-${index + 1}` }),
+		);
+		let active = 0;
+		let maxActive = 0;
+		const checker = vi.fn(async () => {
+			active++;
+			maxActive = Math.max(maxActive, active);
+			await new Promise((resolve) => setTimeout(resolve, 5));
+			active--;
+			return inaccessibleEvidence;
+		});
+
+		const result = await processBatch(records, checker, { concurrency: 2 });
+
+		expect(maxActive).toBe(2);
+		expect(result.results.map((row) => row.ok && row.row.menuId)).toEqual([
+			"menu-1",
+			"menu-2",
+			"menu-3",
+			"menu-4",
+			"menu-5",
+			"menu-6",
+		]);
+	});
+
+	it("reports progress after every completed row", async () => {
+		const records = [
+			makeRecord({ menuId: "menu-1" }),
+			makeRecord({ menuId: "menu-2" }),
+		];
+		const progress = vi.fn();
+
+		await processBatch(records, makeChecker(inaccessibleEvidence), {
+			concurrency: 1,
+			onProgress: progress,
+		});
+
+		expect(progress).toHaveBeenNthCalledWith(1, {
+			completed: 1,
+			total: 2,
+			processed: 1,
+			errors: 0,
+			currentMenuId: "menu-1",
+		});
+		expect(progress).toHaveBeenNthCalledWith(2, {
+			completed: 2,
+			total: 2,
+			processed: 2,
+			errors: 0,
+			currentMenuId: "menu-2",
+		});
+	});
 });
