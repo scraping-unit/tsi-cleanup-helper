@@ -10,17 +10,25 @@ import { ResultsView } from "./components/ResultsView";
 type AppPhase =
   | { phase: "idle" }
   | { phase: "loading"; fileName: string; progress?: ProcessProgress }
-  | { phase: "results"; result: BatchProcessResult; csv: string; importErrors: CsvRowError[]; aiReview?: AiReviewProgress }
+  | { phase: "results"; jobId: string; result: BatchProcessResult; csv: string; importErrors: CsvRowError[]; aiReview?: AiReviewProgress }
   | { phase: "error"; message: string };
 
 type SavedJob = { jobId: string; fileName: string };
+type Theme = "light" | "dark";
 
 const ACTIVE_JOB_STORAGE_KEY = "tsi-cleanup-active-job";
+const THEME_STORAGE_KEY = "tsi-cleanup-theme";
 const POLL_INTERVAL_MS = 500;
 
 export default function App() {
   const [state, setState] = useState<AppPhase>({ phase: "idle" });
+  const [theme, setTheme] = useState<Theme>(loadTheme);
   const activeRequest = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   useEffect(() => {
     const savedJob = loadSavedJob();
@@ -100,7 +108,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader phase={state.phase} />
+      <AppHeader
+        phase={state.phase}
+        theme={theme}
+        onToggleTheme={() => setTheme((current) => current === "light" ? "dark" : "light")}
+      />
       <main className="flex-1 flex flex-col">
         {state.phase === "idle" && <UploadArea onFile={handleFile} />}
         {state.phase === "loading" && <ProcessingView fileName={state.fileName} progress={state.progress} />}
@@ -113,6 +125,7 @@ export default function App() {
             csv={state.csv}
             importErrors={state.importErrors}
             aiReview={state.aiReview}
+            persistenceKey={`tsi-cleanup-results-ui:${state.jobId}`}
             onAiReview={handleAiReview}
             onAiReviewSelected={handleAiReviewSelected}
             onReset={handleReset}
@@ -121,6 +134,12 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function loadTheme(): Theme {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === "light" || stored === "dark") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 async function followJob(
@@ -146,6 +165,7 @@ async function followJob(
 
       setState({
         phase: "results",
+        jobId: job.jobId,
         result: snapshot.data.result,
         csv: snapshot.data.csv,
         importErrors: snapshot.data.importErrors,

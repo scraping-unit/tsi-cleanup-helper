@@ -1,9 +1,9 @@
 import type { Confidence } from "../types";
 
 const CONFIDENCE_COLORS: Record<Confidence, { bg: string; text: string }> = {
-  high:   { bg: '#E8F7EF', text: '#2D7A4F' },
-  medium: { bg: '#FFF0CC', text: '#A05C00' },
-  low:    { bg: '#FDECEA', text: '#B83030' },
+  high:   { bg: 'var(--success-bg)', text: 'var(--success-text)' },
+  medium: { bg: 'var(--warning-bg)', text: 'var(--warning-text)' },
+  low:    { bg: 'var(--danger-bg)', text: 'var(--danger-text)' },
 };
 
 interface ConfidenceBadgeProps {

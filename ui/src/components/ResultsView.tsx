@@ -19,13 +19,46 @@ import { ImportErrorBanner } from "./ImportErrorBanner";
 import { SummaryBar } from "./SummaryBar";
 import { TableToolbar } from "./TableToolbar";
 import { ResultsTable } from "./ResultsTable";
+import { AiReviewPanel } from "./AiReviewPanel";
 
 const col = createColumnHelper<DisplayRow>();
+
+export type TableDensity = "comfortable" | "compact";
+export type ReviewDecision = "accepted" | "rejected";
+export type RowReviewState = {
+  decision: ReviewDecision;
+  updatedAt: string;
+};
+export type RowReviewMap = Record<string, RowReviewState>;
+export type CsvExportHrefs = {
+  reviewed: string | null;
+  unresolved: string | null;
+  aiWrong: string | null;
+};
+
+export type ResultsTableMeta = {
+  activeRowKey: string | null;
+  rowReviews: RowReviewMap;
+  onOpenRow: (row: DisplayRow) => void;
+};
+
+type PersistedResultsViewState = {
+  columnFilters?: ColumnFiltersState;
+  globalFilter?: string;
+  columnVisibility?: VisibilityState;
+  sorting?: SortingState;
+  density?: TableDensity;
+  rowReviews?: RowReviewMap;
+};
+
+export function getRowKey(row: DisplayRow): string {
+  return `${row.menuId || "unknown"}::${row.currentMenuUrl || "missing"}`;
+}
 
 const urlCellStyle: React.CSSProperties = {
   fontFamily: 'JetBrains Mono, monospace',
   fontSize: '12px',
-  color: '#1A120B',
+  color: 'var(--text-primary)',
   display: 'block',
   maxWidth: '220px',
   overflow: 'hidden',
@@ -35,9 +68,9 @@ const urlCellStyle: React.CSSProperties = {
 };
 
 const URL_HEALTH_STYLES: Record<DisplayRow["urlHealth"], { color: string; label: string }> = {
-  accessible: { color: '#2D7A4F', label: 'accessible' },
-  dead: { color: '#B83030', label: 'dead' },
-  unverifiable: { color: '#A05C00', label: 'unverifiable' },
+  accessible: { color: 'var(--success-text)', label: 'accessible' },
+  dead: { color: 'var(--danger-text)', label: 'dead' },
+  unverifiable: { color: 'var(--warning-text)', label: 'unverifiable' },
 };
 
 const COLUMNS = [
@@ -51,6 +84,7 @@ const COLUMNS = [
         checked={row.getIsSelected()}
         disabled={!row.getCanSelect()}
         onChange={row.getToggleSelectedHandler()}
+        onClick={(event) => event.stopPropagation()}
         aria-label={`Select row ${row.original.menuId}`}
         style={selectionCheckboxStyle}
       />
@@ -125,7 +159,7 @@ const COLUMNS = [
   col.display({
     id: "action",
     header: "",
-    cell: () => (
+    cell: (info) => (
       <button
         type="button"
         className="flex items-center justify-center"
@@ -135,13 +169,17 @@ const COLUMNS = [
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          color: '#6B4230',
+          color: 'var(--text-secondary)',
           transition: 'color 150ms ease-out',
           padding: 0,
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#EE612C'; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6B4230'; }}
-        onClick={() => {}}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--primary)'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; }}
+        onClick={(event) => {
+          event.stopPropagation();
+          const meta = info.table.options.meta as ResultsTableMeta | undefined;
+          meta?.onOpenRow(info.row.original);
+        }}
         aria-label="View details"
       >
         <ChevronRight size={16} />
@@ -168,13 +206,13 @@ const COLUMNS = [
       const row = info.row.original;
       if (row._kind === "error") {
         return (
-          <span style={{ fontStyle: 'italic', color: '#B83030', fontSize: '12px' }}>
+          <span style={{ fontStyle: 'italic', color: 'var(--danger-text)', fontSize: '12px' }}>
             {row._error}
           </span>
         );
       }
       return (
-        <span style={{ color: '#6B4230', fontSize: '12px' }}>{info.getValue()}</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{info.getValue()}</span>
       );
     },
   }),
@@ -193,7 +231,7 @@ const COLUMNS = [
           href={val}
           target="_blank"
           rel="noreferrer"
-          style={{ ...urlCellStyle, color: '#EE612C' }}
+          style={{ ...urlCellStyle, color: 'var(--primary)' }}
           title={val}
         >
           {val}
@@ -233,7 +271,7 @@ const COLUMNS = [
       const val = info.getValue();
       if (!val) return "—";
       return (
-        <a href={val} target="_blank" rel="noreferrer" style={{ ...urlCellStyle, color: '#EE612C' }} title={val}>
+        <a href={val} target="_blank" rel="noreferrer" style={{ ...urlCellStyle, color: 'var(--primary)' }} title={val}>
           {val}
         </a>
       );
@@ -357,6 +395,7 @@ interface ResultsViewProps {
   csv: string;
   importErrors: CsvRowError[];
   aiReview?: AiReviewProgress;
+  persistenceKey: string;
   onAiReview: (limit: number) => void;
   onAiReviewSelected: (rowIndexes: number[]) => void;
   onReset: () => void;
@@ -367,12 +406,17 @@ export function ResultsView({
   csv,
   importErrors,
   aiReview,
+  persistenceKey,
   onAiReview,
   onAiReviewSelected,
   onReset,
 }: ResultsViewProps) {
   const displayRows = useMemo(() => toDisplayRows(result.results), [result]);
   const [csvHref, setCsvHref] = useState<string | null>(null);
+  const persisted = useMemo(
+    () => loadPersistedResultsViewState(persistenceKey),
+    [persistenceKey],
+  );
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
@@ -380,12 +424,17 @@ export function ResultsView({
     return () => URL.revokeObjectURL(objectUrl);
   }, [csv]);
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
+    persisted.columnFilters ?? [],
+  );
+  const [globalFilter, setGlobalFilter] = useState(persisted.globalFilter ?? "");
   const [columnVisibility, setColumnVisibility] =
-    useState<VisibilityState>(DEFAULT_HIDDEN);
-  const [sorting, setSorting] = useState<SortingState>([]);
+    useState<VisibilityState>({ ...DEFAULT_HIDDEN, ...(persisted.columnVisibility ?? {}) });
+  const [sorting, setSorting] = useState<SortingState>(persisted.sorting ?? []);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [density, setDensity] = useState<TableDensity>(persisted.density ?? "comfortable");
+  const [rowReviews, setRowReviews] = useState<RowReviewMap>(persisted.rowReviews ?? {});
+  const [activeRowKey, setActiveRowKey] = useState<string | null>(displayRows[0] ? getRowKey(displayRows[0]) : null);
 
   const table = useReactTable({
     data: displayRows,
@@ -398,6 +447,11 @@ export function ResultsView({
     onRowSelectionChange: setRowSelection,
     getRowId: (row) => String(row.sourceIndex),
     enableRowSelection: (row) => row.original._kind === "success",
+    meta: {
+      activeRowKey,
+      rowReviews,
+      onOpenRow: (row: DisplayRow) => setActiveRowKey(getRowKey(row)),
+    } satisfies ResultsTableMeta,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -409,6 +463,59 @@ export function ResultsView({
       );
     },
   });
+
+  const activeRow = useMemo(
+    () => displayRows.find((row) => getRowKey(row) === activeRowKey) ?? displayRows[0],
+    [activeRowKey, displayRows],
+  );
+  const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
+  const exportHrefs = useCsvExports(displayRows, rowReviews);
+
+  useEffect(() => {
+    savePersistedResultsViewState(persistenceKey, {
+      columnFilters,
+      globalFilter,
+      columnVisibility,
+      sorting,
+      density,
+      rowReviews,
+    });
+  }, [columnFilters, columnVisibility, density, globalFilter, persistenceKey, rowReviews, sorting]);
+
+  function toggleVisibleRows(selected: boolean) {
+    setRowSelection((current) => {
+      const next = { ...current };
+      for (const row of table.getRowModel().rows) {
+        if (!row.getCanSelect()) continue;
+        if (selected) next[row.id] = true;
+        else delete next[row.id];
+      }
+      return next;
+    });
+  }
+
+  function selectRowsBy(predicate: (row: DisplayRow) => boolean) {
+    const next: RowSelectionState = {};
+    for (const row of table.getFilteredRowModel().rows) {
+      if (row.getCanSelect() && predicate(row.original)) next[row.id] = true;
+    }
+    setRowSelection(next);
+  }
+
+  function markRowsReviewed(rows: DisplayRow[], decision: ReviewDecision) {
+    const updatedAt = new Date().toISOString();
+    setRowReviews((current) => {
+      const next = { ...current };
+      for (const row of rows) {
+        next[getRowKey(row)] = { decision, updatedAt };
+      }
+      return next;
+    });
+  }
+
+  function markRowReviewed(row: DisplayRow, decision: ReviewDecision) {
+    markRowsReviewed([row], decision);
+  }
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -423,13 +530,34 @@ export function ResultsView({
         globalFilter={globalFilter}
         onGlobalFilterChange={setGlobalFilter}
         csvHref={csvHref}
+        exportHrefs={exportHrefs}
         aiReview={aiReview}
+        density={density}
+        selectedCount={selectedRows.length}
+        onDensityChange={setDensity}
+        onClearSelection={() => setRowSelection({})}
+        onSelectVisible={() => toggleVisibleRows(true)}
+        onSelectByUrlHealth={(urlHealth) => selectRowsBy((row) => row.urlHealth === urlHealth)}
+        onSelectByAiConfidence={(confidence) => selectRowsBy((row) => row.aiConfidence === confidence)}
+        onSelectByPlatform={(platform) => selectRowsBy((row) => row.detectedPlatform === platform)}
+        onSelectByStatus={(status) => selectRowsBy((row) => row.reviewerAction === status)}
+        onAcceptSelected={() => markRowsReviewed(selectedRows, "accepted")}
+        onRejectSelected={() => markRowsReviewed(selectedRows, "rejected")}
         onAiReview={onAiReview}
         onAiReviewSelected={onAiReviewSelected}
         onReset={onReset}
       />
+      <AiReviewPanel
+        row={activeRow}
+        selectedCount={selectedRows.length}
+        review={activeRow ? rowReviews[getRowKey(activeRow)] : undefined}
+        onAcceptRow={() => activeRow && markRowReviewed(activeRow, "accepted")}
+        onRejectRow={() => activeRow && markRowReviewed(activeRow, "rejected")}
+        onAcceptSelected={() => markRowsReviewed(selectedRows, "accepted")}
+        onRejectSelected={() => markRowsReviewed(selectedRows, "rejected")}
+      />
       <div className="flex-1 overflow-hidden">
-        <ResultsTable table={table} />
+        <ResultsTable table={table} density={density} />
       </div>
     </div>
   );
@@ -438,7 +566,7 @@ export function ResultsView({
 const selectionCheckboxStyle: React.CSSProperties = {
   width: '14px',
   height: '14px',
-  accentColor: '#EE612C',
+  accentColor: 'var(--primary)',
   cursor: 'pointer',
 };
 
@@ -468,4 +596,125 @@ function HeaderSelectCheckbox({ table }: { table: ReturnType<typeof useReactTabl
       style={selectionCheckboxStyle}
     />
   );
+}
+
+function useCsvExports(rows: DisplayRow[], rowReviews: RowReviewMap): CsvExportHrefs {
+  const [hrefs, setHrefs] = useState<CsvExportHrefs>({
+    reviewed: null,
+    unresolved: null,
+    aiWrong: null,
+  });
+
+  useEffect(() => {
+    const exports = {
+      reviewed: URL.createObjectURL(new Blob([
+        rowsToCsv(rows.filter((row) => Boolean(rowReviews[getRowKey(row)])), rowReviews),
+      ], { type: "text/csv" })),
+      unresolved: URL.createObjectURL(new Blob([
+        rowsToCsv(rows.filter((row) => isUnresolved(row, rowReviews)), rowReviews),
+      ], { type: "text/csv" })),
+      aiWrong: URL.createObjectURL(new Blob([
+        rowsToCsv(rows.filter((row) => rowReviews[getRowKey(row)]?.decision === "rejected" && hasAiReview(row)), rowReviews),
+      ], { type: "text/csv" })),
+    };
+
+    setHrefs(exports);
+    return () => {
+      URL.revokeObjectURL(exports.reviewed);
+      URL.revokeObjectURL(exports.unresolved);
+      URL.revokeObjectURL(exports.aiWrong);
+    };
+  }, [rowReviews, rows]);
+
+  return hrefs;
+}
+
+function isUnresolved(row: DisplayRow, rowReviews: RowReviewMap): boolean {
+  if (rowReviews[getRowKey(row)]) return false;
+  return (
+    row._kind === "error" ||
+    row.reviewerAction === "Check manually" ||
+    row.urlHealth !== "accessible" ||
+    row.aiRecommendedAction === "manual_review" ||
+    Boolean(row.aiError)
+  );
+}
+
+function hasAiReview(row: DisplayRow): boolean {
+  return Boolean(
+    row.aiRecommendedAction ||
+    row.aiReason ||
+    row.aiCandidateUrl ||
+    row.aiEvidenceUrls?.length ||
+    row.aiConfidencePercentage !== undefined ||
+    row.aiError,
+  );
+}
+
+function rowsToCsv(rows: DisplayRow[], rowReviews: RowReviewMap): string {
+  const headers = [
+    "menu_id",
+    "brand_name",
+    "current_menu_url",
+    "url_result",
+    "http_status",
+    "platform",
+    "recommendation",
+    "confidence",
+    "ai_action",
+    "ai_confidence_percent",
+    "ai_candidate_url",
+    "ai_reason",
+    "ai_evidence_urls",
+    "review_decision",
+    "review_updated_at",
+  ];
+  const lines = rows.map((row) => {
+    const review = rowReviews[getRowKey(row)];
+    return [
+      row.menuId,
+      row.brandName,
+      row.currentMenuUrl,
+      row.currentUrlResult,
+      row.httpStatus ?? "",
+      row.detectedPlatform ?? "",
+      row.reviewerAction,
+      row.confidence,
+      row.aiRecommendedAction ?? "",
+      row.aiConfidencePercentage ?? "",
+      row.aiCandidateUrl ?? "",
+      row.aiReason ?? row.aiError ?? "",
+      row.aiEvidenceUrls?.join(" | ") ?? "",
+      review?.decision ?? "",
+      review?.updatedAt ?? "",
+    ].map(serializeCsvCell).join(",");
+  });
+  return [headers.join(","), ...lines].join("\r\n");
+}
+
+function serializeCsvCell(value: unknown): string {
+  const text = String(value ?? "");
+  if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+}
+
+function loadPersistedResultsViewState(key: string): PersistedResultsViewState {
+  const value = localStorage.getItem(key);
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as PersistedResultsViewState;
+    return {
+      ...parsed,
+      columnVisibility: { ...DEFAULT_HIDDEN, ...(parsed.columnVisibility ?? {}) },
+      density: parsed.density === "compact" ? "compact" : "comfortable",
+      rowReviews: parsed.rowReviews ?? {},
+    };
+  } catch {
+    localStorage.removeItem(key);
+    return {};
+  }
+}
+
+function savePersistedResultsViewState(key: string, state: PersistedResultsViewState): void {
+  localStorage.setItem(key, JSON.stringify(state));
 }

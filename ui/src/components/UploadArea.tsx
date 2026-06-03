@@ -44,22 +44,22 @@ export function UploadArea({ onFile }: UploadAreaProps) {
         className="w-full max-w-md rounded-xl px-12 py-20 text-center cursor-pointer select-none flex flex-col items-center gap-5"
         style={{
           border: dragging
-            ? '2px dashed rgb(238 97 44 / 0.6)'
-            : '2px dashed rgb(238 97 44 / 0.2)',
-          backgroundColor: dragging ? 'rgb(255 244 223 / 0.8)' : 'transparent',
+            ? '2px dashed var(--primary)'
+            : '2px dashed var(--border-control)',
+          backgroundColor: dragging ? 'var(--surface-hover)' : 'transparent',
           transition: 'border-color 150ms ease-out, background-color 150ms ease-out',
         }}
       >
         <ArrowUp
           size={32}
-          style={{ color: '#EE612C' }}
+          style={{ color: 'var(--primary)' }}
           strokeWidth={2}
         />
         <div className="flex flex-col gap-1">
-          <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '16px', fontWeight: 400, color: '#6B4230' }}>
+          <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '16px', fontWeight: 400, color: 'var(--text-secondary)' }}>
             Drop a CSV to begin
           </p>
-          <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontWeight: 400, color: 'rgb(107 66 48 / 0.6)' }}>
+          <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontWeight: 400, color: 'var(--text-secondary-muted)' }}>
             or click to browse
           </p>
         </div>
@@ -67,8 +67,8 @@ export function UploadArea({ onFile }: UploadAreaProps) {
           type="button"
           tabIndex={-1}
           style={{
-            backgroundColor: '#EE612C',
-            color: '#FFFFFF',
+            backgroundColor: 'var(--primary)',
+            color: 'var(--primary-foreground)',
             fontFamily: 'Outfit, sans-serif',
             fontWeight: 500,
             fontSize: '14px',
@@ -79,8 +79,8 @@ export function UploadArea({ onFile }: UploadAreaProps) {
             cursor: 'pointer',
             transition: 'background-color 150ms ease-out',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#D4521E'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#EE612C'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--primary-hover)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--primary)'; }}
         >
           Browse files
         </button>

@@ -42,6 +42,27 @@
   --brand-ink: #1A120B;
   --brand-brown: #6B4230;
   --brand-surface: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-subtle: #FFF9F0;
+  --surface-hover: #FFF4DF;
+  --surface-selected: #FFF0E7;
+  --surface-active: #FFE6D8;
+  --text-primary: #1A120B;
+  --text-secondary: #6B4230;
+  --text-secondary-muted: rgb(107 66 48 / 0.6);
+  --border-subtle: rgb(238 97 44 / 0.12);
+  --border-control: rgb(238 97 44 / 0.2);
+  --primary-hover: #D4521E;
+  --success-bg: #E8F7EF;
+  --success-text: #2D7A4F;
+  --warning-bg: #FFF0CC;
+  --warning-text: #A05C00;
+  --danger-bg: #FDECEA;
+  --danger-text: #B83030;
+  --neutral-bg: #F4F0ED;
+  --neutral-text: #555555;
+  --reviewed-border: #2D7A4F;
+  --rejected-border: #B83030;
 
   --background: #FFF4DF;
   --foreground: #1A120B;
@@ -63,6 +84,55 @@
   --input: rgb(238 97 44 / 0.15);
   --ring: #EE612C;
   --radius: 0.375rem;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --brand-orange: #F27649;
+  --brand-cream: #121416;
+  --brand-ink: #F4F5F6;
+  --brand-brown: #B7BEC7;
+  --brand-surface: #191C20;
+  --surface: #191C20;
+  --surface-subtle: #1F2328;
+  --surface-hover: #292E35;
+  --surface-selected: #2A3138;
+  --surface-active: #342E2A;
+  --text-primary: #F4F5F6;
+  --text-secondary: #B7BEC7;
+  --text-secondary-muted: rgb(183 190 199 / 0.68);
+  --border-subtle: rgb(255 255 255 / 0.08);
+  --border-control: rgb(255 255 255 / 0.16);
+  --primary-hover: #FF865A;
+  --success-bg: #16372B;
+  --success-text: #80D7AD;
+  --warning-bg: #3C2E15;
+  --warning-text: #F1C56D;
+  --danger-bg: #402222;
+  --danger-text: #F0A09A;
+  --neutral-bg: #272C32;
+  --neutral-text: #C3CAD2;
+  --reviewed-border: #80D7AD;
+  --rejected-border: #F0A09A;
+
+  --background: #121416;
+  --foreground: #F4F5F6;
+  --card: #191C20;
+  --card-foreground: #F4F5F6;
+  --popover: #1F2328;
+  --popover-foreground: #F4F5F6;
+  --primary: #F27649;
+  --primary-foreground: #17191C;
+  --secondary: #1F2328;
+  --secondary-foreground: #F4F5F6;
+  --muted: #1F2328;
+  --muted-foreground: #B7BEC7;
+  --accent: #292E35;
+  --accent-foreground: #F4F5F6;
+  --border: rgb(255 255 255 / 0.1);
+  --input: rgb(255 255 255 / 0.16);
+  --ring: #F27649;
+  color-scheme: dark;
 }
 
 @layer base {
@@ -72,5 +142,6 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Outfit', sans-serif;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
   }
 }
