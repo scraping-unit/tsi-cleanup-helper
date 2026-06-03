@@ -1,10 +1,10 @@
 import type { ReviewerAction } from "../lib/toDisplayRows";
 
 const ACTION_COLORS: Record<ReviewerAction, { bg: string; text: string }> = {
-  "Valid":          { bg: '#E8F7EF', text: '#2D7A4F' },
-  "Update URL":     { bg: '#FFF0CC', text: '#A05C00' },
-  "Exclude":        { bg: '#FDECEA', text: '#B83030' },
-  "Check manually": { bg: '#F4F0ED', text: '#555555' },
+  "Valid":          { bg: 'var(--success-bg)', text: 'var(--success-text)' },
+  "Update URL":     { bg: 'var(--warning-bg)', text: 'var(--warning-text)' },
+  "Exclude":        { bg: 'var(--danger-bg)', text: 'var(--danger-text)' },
+  "Check manually": { bg: 'var(--neutral-bg)', text: 'var(--neutral-text)' },
 };
 
 interface StatusBadgeProps {

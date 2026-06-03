@@ -14,8 +14,8 @@ export function ImportErrorBanner({ errors }: ImportErrorBannerProps) {
     <div
       className="flex items-center justify-between gap-4 px-4 py-2.5"
       style={{
-        backgroundColor: '#FFF0CC',
-        color: '#A05C00',
+        backgroundColor: 'var(--warning-bg)',
+        color: 'var(--warning-text)',
         borderRadius: '6px',
         fontFamily: 'Outfit, sans-serif',
         fontSize: '13px',
@@ -32,7 +32,7 @@ export function ImportErrorBanner({ errors }: ImportErrorBannerProps) {
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          color: '#A05C00',
+          color: 'var(--warning-text)',
           fontSize: '16px',
           lineHeight: 1,
           padding: 0,

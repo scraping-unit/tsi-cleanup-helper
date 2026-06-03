@@ -10,7 +10,7 @@ interface TileProps {
   valueColor?: string;
 }
 
-function Tile({ label, value, valueColor = '#1A120B' }: TileProps) {
+function Tile({ label, value, valueColor = 'var(--text-primary)' }: TileProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-1 px-6">
       <span
@@ -29,7 +29,7 @@ function Tile({ label, value, valueColor = '#1A120B' }: TileProps) {
           fontFamily: 'Outfit, sans-serif',
           fontSize: '11px',
           fontWeight: 400,
-          color: '#6B4230',
+          color: 'var(--text-secondary)',
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
         }}
@@ -46,7 +46,7 @@ export function SummaryBar({ summary }: SummaryBarProps) {
   const autoResolved = summary.processed - needsReview;
 
   const divider = (
-    <div style={{ width: '1px', height: '40px', backgroundColor: 'rgb(238 97 44 / 0.08)' }} />
+    <div style={{ width: '1px', height: '40px', backgroundColor: 'var(--border-subtle)' }} />
   );
 
   return (
@@ -54,15 +54,15 @@ export function SummaryBar({ summary }: SummaryBarProps) {
       className="flex items-center"
       style={{
         height: '72px',
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid rgb(238 97 44 / 0.10)',
+        backgroundColor: 'var(--surface)',
+        borderBottom: '1px solid var(--border-subtle)',
       }}
     >
       <Tile label="Total" value={summary.total} />
       {divider}
-      <Tile label="Valid" value={valid} valueColor="#2D7A4F" />
+      <Tile label="Valid" value={valid} valueColor="var(--success-text)" />
       {divider}
-      <Tile label="Needs Review" value={needsReview} valueColor="#EE612C" />
+      <Tile label="Needs Review" value={needsReview} valueColor="var(--primary)" />
       {divider}
       <Tile label="Auto-resolved" value={autoResolved} />
     </div>

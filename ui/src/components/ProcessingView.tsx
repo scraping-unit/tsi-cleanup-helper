@@ -18,17 +18,17 @@ export function ProcessingView({ fileName, progress }: ProcessingViewProps) {
           width: '40px',
           height: '40px',
           borderRadius: '9999px',
-          border: '4px solid rgb(238 97 44 / 0.2)',
-          borderTopColor: '#EE612C',
+          border: '4px solid var(--border-control)',
+          borderTopColor: 'var(--primary)',
           animationDuration: '1.2s',
           animationTimingFunction: 'linear',
         }}
       />
-      <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 500, fontSize: '16px', color: '#1A120B' }}>
+      <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 500, fontSize: '16px', color: 'var(--text-primary)' }}>
         Checking URLs
       </p>
       {fileName && (
-        <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: '#6B4230' }}>
+        <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', color: 'var(--text-secondary)' }}>
           {fileName}
         </p>
       )}
@@ -40,18 +40,18 @@ export function ProcessingView({ fileName, progress }: ProcessingViewProps) {
             aria-valuemax={progress.total}
             aria-valuenow={progress.completed}
             className="h-2 overflow-hidden rounded-full"
-            style={{ backgroundColor: 'rgb(238 97 44 / 0.2)' }}
+            style={{ backgroundColor: 'var(--border-control)' }}
           >
             <div
               className="h-full rounded-full"
               style={{
                 width: `${percentage}%`,
-                backgroundColor: '#EE612C',
+                backgroundColor: 'var(--primary)',
                 transition: 'width 150ms ease-out',
               }}
             />
           </div>
-          <p className="text-center" style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#6B4230' }}>
+          <p className="text-center" style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: 'var(--text-secondary)' }}>
             {progress.completed} / {progress.total} menus checked
           </p>
         </div>
